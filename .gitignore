@@ -1,0 +1,21 @@
+# Go build artifacts
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go coverage
+*.out
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs and temp
+/tmp/
+.DS_Store
+
