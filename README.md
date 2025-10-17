@@ -29,3 +29,8 @@ This repository is internal-only for now; coordinate via AGENTS directives. Use 
 
 ## CI Status
 Pending setup.
+
+## Development
+- Run `go test ./...` before pushing.
+- Run static analysis with `staticcheck ./...` (CI enforces it).
+- Use `gofmt` on Go files (CI enforces).
