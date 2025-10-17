@@ -26,3 +26,6 @@ We will flesh out additional internal packages for MQTT handling, protobuf decod
 
 ## Contributing
 This repository is internal-only for now; coordinate via AGENTS directives. Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1–3 commits per branch). No direct pushes to `main` without owner approval.
+
+## CI Status
+Pending setup.
