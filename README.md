@@ -23,8 +23,8 @@ Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongs
 
 ### Utilities
 
-- `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` data from an existing capture SQLite database through the Go pipeline, producing a fresh SQLite output for parity comparisons.
-- `cmd/meshpipe-diff`: compares two capture SQLite databases (typically Python vs Go output) and reports row-level differences in `packet_history` / `node_info` with sample fingerprints.
+- `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` data from an existing capture SQLite database through the Go pipeline, producing a fresh SQLite output for regression comparisons.
+- `cmd/meshpipe-diff`: compares two capture SQLite databases and reports row-level differences in `packet_history` / `node_info` with sample fingerprints—useful for validating schema migrations or new decoder logic.
 
 ### Container
 
@@ -42,11 +42,11 @@ docker run --rm \
 
 The image defines a `/data` volume for the SQLite file and exposes a healthcheck that runs `PRAGMA integrity_check`.
 
-## Immediate Next Steps
-1. Author the detailed architecture/design document under `docs/` (capture pipeline, storage layer, migration plan).
-2. Scaffold internal packages (config loader, logging, metrics, storage interface, MQTT client wiring).
-3. Set up CI (Go test, lint, static analysis) and container build workflow.
-4. Build replay tooling to validate parity against the legacy Python capture.
+## Getting Started
+1. Create a configuration file (`config.yaml`) or export the relevant `MESHPIPE_*` environment variables.
+2. Run `go build ./cmd/meshpipe` to produce a local binary (or use the provided Dockerfile).
+3. Start the service: `MESHPIPE_CONFIG_FILE=path/to/config.yaml ./meshpipe` (or mount the file when running the container).
+4. Optional: run `cmd/meshpipe-smoke` to verify connectivity with your MQTT broker.
 
 ## Contributing
 Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1–3 commits per branch). No direct pushes to `main` without owner approval.
@@ -60,5 +60,5 @@ GitHub Actions (`.github/workflows/ci.yml`) runs gofmt, go test, staticcheck, an
 - Use `gofmt` on Go files (CI enforces).
 - Observability server listens on `MESHPIPE_OBSERVABILITY_ADDRESS` (default `:2112`) and exposes `/metrics` (Prometheus) + `/healthz`.
 - SQLite maintenance runs automatically (`PRAGMA wal_checkpoint(TRUNCATE)` + `PRAGMA optimize` every `MESHPIPE_MAINTENANCE_INTERVAL_MINUTES`, default 360). On shutdown the service runs `VACUUM`/`ANALYZE` to keep the file compact.
-- For migration parity: dump the legacy SQLite, run `meshpipe-replay --source legacy.db --output go.db`, then `meshpipe-diff --old legacy.db --new go.db`; the diff should be empty before switching traffic.
+- For regression checks: dump an existing SQLite, run `meshpipe-replay --source input.db --output meshpipe.db`, then `meshpipe-diff --old input.db --new meshpipe.db`; investigate any differences before promoting a new build.
 - Guardrails: MQTT payloads > `MESHPIPE_MAX_ENVELOPE_BYTES` (default 256 KiB) drop early with metrics `messages_dropped_total`.

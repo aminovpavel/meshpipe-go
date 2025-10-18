@@ -1,4 +1,4 @@
-# Meshpipe — Architecture Draft
+# Meshpipe — Architecture
 
 ## Overview
 Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes protobuf payloads, and writes normalized records into SQLite. Meshworks Malla deploys this build today, but the architecture is intentionally generic so any Meshtastic installation can reuse the same pipeline and schema.
@@ -12,30 +12,25 @@ Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes 
                     +-----------------+
 ```
 
-## Key Components (current)
+## Key Components
 - **cmd/meshpipe** – entrypoint, wiring config, logging, metrics, pipeline startup, graceful shutdown.
-- **internal/config** – YAML + env loader matching the Python defaults. Ensures parity for compose/helm deployments.
+- **internal/config** – YAML + env loader (supports `MESHPIPE_*` overrides and legacy aliases) for consistent deployments.
 - **internal/mqtt** – wrapper around paho.golang (v2) with resilient reconnect logic and backpressure-aware subscription handling.
 - **internal/decode** – protobuf bindings generated from Meshtastic definitions, plus helpers for channel-key derivation, AES-CTR decryption, and payload enrichment.
 - **internal/storage** – SQLite writer with connection tuning, PRAGMA management, schema migrations, and batch inserts backed by a bounded queue.
 - **internal/observability** – structured logging helpers, Prometheus metrics registry, and `/metrics` + `/healthz` HTTP server.
 - **internal/storage/node_cache** – in-memory node cache (mirrors `node_info`) that tracks first_seen/last_updated timestamps and merges node metadata inside the SQLite writer.
 - **internal/metrics** – Prometheus exporter, structured logging, health endpoints.
-- **internal/replay** – utilities for offline packet replay / diffing against Python capture outputs (used for migration validation).
+- **internal/replay** – utilities for offline packet replay and diffing when validating new builds against captured data sets.
 
 ## Roadmap
 1. **Config & logging scaffolding** – finalize config schema, structured logging, metrics skeleton.
 2. **MQTT ingestion MVP** – subscribe, fan-out into pipeline, add graceful error handling + retry/backoff (unit tests for reconnect logic).
 3. **Decode & decrypt** – port Meshtastic protobuf definitions, implement channel key derivation + AES-CTR decrypt, cover with fixtures.
-4. **Storage layer** – schema migrations, WAL tuning, queue-based writer, parity tests vs Python output.
+4. **Storage layer** – schema migrations, WAL tuning, queue-based writer, parity tests against recorded data sets.
 5. **Observability** – Prometheus metrics, `/healthz`, debug logging controls. **(Implemented core server + counters)**
-6. **Replay tester** – feed recorded MQTT traffic through both implementations, diff SQLite outputs.
-7. **Deployment** – container image, GitHub Actions CI (lint/test/build), GitOps integration.
-
-## Migration Notes
-- Run Go capture alongside Python (dual write) with feature flag before cutover.
-- Keep SQLite schema immutable until both producers align; migrations live with the Go service but must be replayable by Python if rollback occurs.
-- Update AGENTS/Runbooks once rollout plan is locked.
+6. **Replay tester** – feed recorded MQTT traffic through Meshpipe to verify schema/migration changes.
+7. **Deployment** – container image, GitHub Actions CI (lint/test/build), GitOps integration and release automation.
 
 ## Detailed Architecture
 
@@ -76,7 +71,7 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 - Periodic maintenance: writer runs lightweight `wal_checkpoint(TRUNCATE)` + `PRAGMA optimize` on a schedule (configurable), and performs full `VACUUM`/`ANALYZE` during shutdown to keep the file healthy.
 - Dockerfile builds a CGO-enabled binary via multi-stage (golang:1.24 → debian-slim) and ships a healthcheck that runs `PRAGMA integrity_check` against the configured SQLite path.
 - Guardrails: MQTT payloads larger than `max_envelope_bytes` (default 256 KiB) are dropped before decode (`messages_dropped_total` metric) to avoid runaway memory/disk writes.
-- `internal/replay`: helpers to stream existing packet_history rows (via raw ServiceEnvelope blobs) back through the Go pipeline, used by the replay CLI for parity checks.
+- `internal/replay`: helpers to stream existing packet_history rows (via raw ServiceEnvelope blobs) back through the Go pipeline, used by the replay CLI for regression checks.
 - `internal/diff`: SQLite diff utilities for comparing packet_history/node_info footprints across databases (consumed by the CLI tools).
 
 ### 5. Observability
@@ -86,15 +81,15 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 
 ### 6. Testing Strategy
 - Unit: config, crypto, decoder, storage (in-memory), node cache updates.
-- Integration: embedded MQTT broker (mochi-co/mqtt), run pipeline, inspect SQLite output. `cmd/meshpipe-replay` + `cmd/meshpipe-diff` provide the baseline workflow (“legacy → Meshpipe → diff”).
+- Integration: embedded MQTT broker (mochi-co/mqtt), run pipeline, inspect SQLite output. `cmd/meshpipe-replay` + `cmd/meshpipe-diff` help compare new builds against captured traffic.
 - Replay tool: CLI `cmd/meshpipe-replay` to feed recorded frames.
 - Benchmarks: `testing.B` + replay datasets.
 
 ### 7. Deployment & Rollout
 - Dockerfile (multi-stage) built in CI.
 - GitHub Actions: gofmt, staticcheck, unit/integration tests, Docker build.
-- GitOps: add service to compose, dual-run via feature flag (`capture_impl`).
-- Cutover: shadow mode, monitor metrics, flip env var, document rollback.
+- GitOps: update compose manifests and GitOps repos with new image tags.
+- Release flow: promote container, monitor metrics post-deploy, document rollback steps per service runbook.
 
 ### Open Questions
 - Final MQTT client choice.
