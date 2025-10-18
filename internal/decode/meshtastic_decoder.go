@@ -120,18 +120,40 @@ func (d MeshtasticDecoder) populateFromData(packet *Packet, data *meshtasticpb.D
 	packet.PortNumName = portNumName(data.GetPortnum())
 	packet.Payload = append([]byte(nil), data.GetPayload()...)
 
-	node, err := buildNodeInfo(data, receivedAt)
-	if err != nil {
+	var (
+		buildErr error
+	)
+
+	switch meshtasticpb.PortNum(data.GetPortnum()) {
+	case meshtasticpb.PortNum_NODEINFO_APP:
+		var node *NodeInfo
+		node, buildErr = buildNodeInfo(data, receivedAt)
+		packet.Node = node
+		if node != nil && packet.ChannelID != "" {
+			node.PrimaryChannel = packet.ChannelID
+		}
+	case meshtasticpb.PortNum_TEXT_MESSAGE_APP,
+		meshtasticpb.PortNum_ALERT_APP,
+		meshtasticpb.PortNum_REPLY_APP,
+		meshtasticpb.PortNum_DETECTION_SENSOR_APP:
+		packet.Text = buildTextMessage(data, false)
+	case meshtasticpb.PortNum_TEXT_MESSAGE_COMPRESSED_APP:
+		packet.Text = buildTextMessage(data, true)
+	case meshtasticpb.PortNum_POSITION_APP:
+		packet.Position, buildErr = buildPositionInfo(data.GetPayload())
+	case meshtasticpb.PortNum_TELEMETRY_APP:
+		packet.Telemetry, buildErr = buildTelemetryInfo(data.GetPayload())
+	default:
+		// no additional decoding
+	}
+
+	if buildErr != nil {
 		if packet.ParsingError == "" {
-			packet.ParsingError = err.Error()
+			packet.ParsingError = buildErr.Error()
 		} else {
-			packet.ParsingError += "; " + err.Error()
+			packet.ParsingError += "; " + buildErr.Error()
 		}
 		packet.ProcessedSuccessfully = false
-		return
-	}
-	if node != nil {
-		packet.Node = node
 	}
 }
 
@@ -193,8 +215,67 @@ func buildNodeInfo(data *meshtasticpb.Data, receivedAt time.Time) (*NodeInfo, er
 	return node, nil
 }
 
+func buildTextMessage(data *meshtasticpb.Data, compressed bool) *TextMessage {
+	return &TextMessage{
+		Text:         string(data.GetPayload()),
+		WantResponse: data.GetWantResponse(),
+		Dest:         data.GetDest(),
+		Source:       data.GetSource(),
+		RequestID:    data.GetRequestId(),
+		ReplyID:      data.GetReplyId(),
+		Emoji:        data.GetEmoji(),
+		Bitfield:     data.GetBitfield(),
+		Compressed:   compressed,
+	}
+}
+
+func buildPositionInfo(payload []byte) (*PositionInfo, error) {
+	pos := &meshtasticpb.Position{}
+	if err := proto.Unmarshal(payload, pos); err != nil {
+		return nil, err
+	}
+
+	info := &PositionInfo{
+		Proto:      pos,
+		RawPayload: append([]byte(nil), payload...),
+		Time:       pos.GetTime(),
+		Timestamp:  pos.GetTimestamp(),
+	}
+
+	if pos.LatitudeI != nil {
+		v := float64(*pos.LatitudeI) / 1e7
+		info.Latitude = &v
+	}
+	if pos.LongitudeI != nil {
+		v := float64(*pos.LongitudeI) / 1e7
+		info.Longitude = &v
+	}
+	if pos.Altitude != nil {
+		v := *pos.Altitude
+		info.Altitude = &v
+	}
+
+	return info, nil
+}
+
+func buildTelemetryInfo(payload []byte) (*TelemetryInfo, error) {
+	tele := &meshtasticpb.Telemetry{}
+	if err := proto.Unmarshal(payload, tele); err != nil {
+		return nil, err
+	}
+	return &TelemetryInfo{
+		Proto:      tele,
+		RawPayload: append([]byte(nil), payload...),
+	}, nil
+}
+
 func (d MeshtasticDecoder) decryptMeshPacket(mesh *meshtasticpb.MeshPacket, channelName string) ([]byte, error) {
-	keyBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(d.cfg.DefaultKeyBase64))
+	trimmed := strings.TrimSpace(d.cfg.DefaultKeyBase64)
+	if trimmed == "" {
+		return nil, errors.New("decode: default key not configured")
+	}
+
+	keyBytes, err := base64.StdEncoding.DecodeString(trimmed)
 	if err != nil {
 		return nil, errors.New("decode: invalid base64 default key")
 	}

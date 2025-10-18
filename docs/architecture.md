@@ -12,13 +12,14 @@ The Go capture service ingests Meshtastic MQTT messages, applies optional decryp
                     +-----------------+
 ```
 
-## Key Components (planned)
+## Key Components (current)
 - **cmd/malla-capture** – entrypoint, wiring config, logging, metrics, pipeline startup, graceful shutdown.
 - **internal/config** – YAML + env loader matching the Python defaults. Ensures parity for compose/helm deployments.
-- **internal/mqtt** – wrapper around Paho Go (or gmqtt) with resilient reconnect logic and backpressure-aware subscription handling.
-- **internal/decode** – protobuf bindings generated from Meshtastic definitions, plus helpers for channel-key derivation and AES-CTR decryption.
-- **internal/storage** – SQLite writer with connection pool tuning, PRAGMA management, schema migrations, and batch inserts under a write queue.
-- **internal/cache** – in-memory node cache (mirrors `node_info`) with periodic refresh + real-time updates from NodeInfo packets.
+- **internal/mqtt** – wrapper around paho.golang (v2) with resilient reconnect logic and backpressure-aware subscription handling.
+- **internal/decode** – protobuf bindings generated from Meshtastic definitions, plus helpers for channel-key derivation, AES-CTR decryption, and payload enrichment.
+- **internal/storage** – SQLite writer with connection tuning, PRAGMA management, schema migrations, and batch inserts backed by a bounded queue.
+- **internal/observability** – structured logging helpers, Prometheus metrics registry, and `/metrics` + `/healthz` HTTP server.
+- **internal/storage/node_cache** – in-memory node cache (mirrors `node_info`) с первичной/последней отметкой времени и merge-логикой, работает внутри SQLite writer.
 - **internal/metrics** – Prometheus exporter, structured logging, health endpoints.
 - **internal/replay** – utilities for offline packet replay / diffing against Python capture outputs (used for migration validation).
 
@@ -27,7 +28,7 @@ The Go capture service ingests Meshtastic MQTT messages, applies optional decryp
 2. **MQTT ingestion MVP** – subscribe, fan-out into pipeline, add graceful error handling + retry/backoff (unit tests for reconnect logic).
 3. **Decode & decrypt** – port Meshtastic protobuf definitions, implement channel key derivation + AES-CTR decrypt, cover with fixtures.
 4. **Storage layer** – schema migrations, WAL tuning, queue-based writer, parity tests vs Python output.
-5. **Observability** – Prometheus metrics, `/healthz`, debug logging controls.
+5. **Observability** – Prometheus metrics, `/healthz`, debug logging controls. **(Implemented core server + counters)**
 6. **Replay tester** – feed recorded MQTT traffic through both implementations, diff SQLite outputs.
 7. **Deployment** – container image, GitHub Actions CI (lint/test/build), GitOps integration.
 
@@ -69,18 +70,23 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 
 ### 4. Storage & Caching
 - `internal/storage`: SQLite adapter (`modernc.org/sqlite`), migrations, PRAGMA configuration.
-- `internal/storage/migrations`: SQL files for `packet_history`, `node_info`.
+- `internal/storage/migrations`: SQL snippets embedded in Go migrate routine.
+- `internal/storage/node_cache`: in-memory snapshot of `node_info` (first_seen/last_updated merge, channel metadata) to avoid per-packet SELECTs.
 - Write queue: bounded channel + worker with prepared statements/transactions.
-- `internal/cache`: RWMutex/`sync.Map` node cache, scheduled reconciliation.
+- Periodic maintenance: writer runs lightweight `wal_checkpoint(TRUNCATE)` + `PRAGMA optimize` on a schedule (configurable), and performs full `VACUUM`/`ANALYZE` during shutdown to keep the file healthy.
+- Dockerfile builds a CGO-enabled binary via multi-stage (golang:1.24 → debian-slim) and ships a healthcheck that runs `PRAGMA integrity_check` against the configured SQLite path.
+- Guardrails: MQTT payloads larger than `max_envelope_bytes` (default 256 KiB) are dropped before decode (`messages_dropped_total` metric) to avoid runaway memory/disk writes.
+- `internal/replay`: helpers to stream existing packet_history rows (via raw ServiceEnvelope blobs) back through the Go pipeline, used by the replay CLI for parity checks.
+- `internal/diff`: SQLite diff utilities for comparing packet_history/node_info footprints across databases (используются CLI).
 
 ### 5. Observability
-- `internal/metrics`: Prometheus metrics (ingest throughput, errors, backlog, DB latency).
-- Structured logging with packet/topic/node context.
-- HTTP server providing `/healthz` (checks MQTT + queue) and `/metrics`.
+- `internal/observability`: structured logging (`slog`), Prometheus metrics (ingest throughput, errors, queue depth, node upserts), and health endpoint wiring.
+- `/metrics` served via `promhttp` on `MALLA_OBSERVABILITY_ADDRESS` (default `:2112`); `/healthz` returns 200 unless recent pipeline/storage errors mark the collector unhealthy.
+- Structured logs (text or JSON) honour `MALLA_LOG_LEVEL`; pipeline/storage components accept injected loggers to ensure consistent context.
 
 ### 6. Testing Strategy
-- Unit: config, crypto, decoder, storage (in-memory), cache updates.
-- Integration: embedded MQTT broker (mochi-co/mqtt), run pipeline, inspect SQLite output.
+- Unit: config, crypto, decoder, storage (in-memory), node cache updates.
+- Integration: embedded MQTT broker (mochi-co/mqtt), run pipeline, inspect SQLite output. `cmd/malla-replay` + `cmd/malla-diff` составляют baseline-поток «Python → Go → сравнить».
 - Replay tool: CLI `cmd/malla-replay` to feed recorded frames.
 - Benchmarks: `testing.B` + replay datasets.
 

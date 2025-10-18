@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	meshtasticpb "github.com/aminovpavel/mw-malla-capture/internal/decode/pb/meshtastic"
 	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
 )
 
@@ -47,7 +48,10 @@ type Packet struct {
 	ProcessedSuccessfully bool
 	ParsingError          string
 
-	Node *NodeInfo
+	Node      *NodeInfo
+	Text      *TextMessage
+	Position  *PositionInfo
+	Telemetry *TelemetryInfo
 }
 
 // Decoder defines behaviour required to transform MQTT messages into packets.
@@ -57,21 +61,52 @@ type Decoder interface {
 
 // NodeInfo captures metadata about a node derived from NODEINFO packets.
 type NodeInfo struct {
-	NodeID        uint32
-	UserID        string
-	LongName      string
-	ShortName     string
-	HWModel       int32
-	Role          int32
-	IsLicensed    bool
-	MacAddress    string
-	Snr           float32
-	LastHeard     uint32
-	ViaMQTT       bool
-	Channel       uint32
-	HopsAway      *uint32
-	IsFavorite    bool
-	IsIgnored     bool
-	IsKeyVerified bool
-	UpdatedAt     time.Time
+	NodeID         uint32
+	UserID         string
+	PrimaryChannel string
+	LongName       string
+	ShortName      string
+	HWModel        int32
+	Role           int32
+	IsLicensed     bool
+	MacAddress     string
+	Snr            float32
+	LastHeard      uint32
+	ViaMQTT        bool
+	Channel        uint32
+	HopsAway       *uint32
+	IsFavorite     bool
+	IsIgnored      bool
+	IsKeyVerified  bool
+	UpdatedAt      time.Time
+}
+
+// TextMessage captures decoded text payloads.
+type TextMessage struct {
+	Text         string
+	WantResponse bool
+	Dest         uint32
+	Source       uint32
+	RequestID    uint32
+	ReplyID      uint32
+	Emoji        uint32
+	Bitfield     uint32
+	Compressed   bool
+}
+
+// PositionInfo holds decoded position data.
+type PositionInfo struct {
+	Proto      *meshtasticpb.Position
+	Latitude   *float64
+	Longitude  *float64
+	Altitude   *int32
+	Time       uint32
+	Timestamp  uint32
+	RawPayload []byte
+}
+
+// TelemetryInfo wraps telemetry metrics.
+type TelemetryInfo struct {
+	Proto      *meshtasticpb.Telemetry
+	RawPayload []byte
 }

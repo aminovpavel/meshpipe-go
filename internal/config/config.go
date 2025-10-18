@@ -15,22 +15,25 @@ const envPrefix = "MALLA_"
 
 // App holds user-facing configuration derived from YAML + environment overrides.
 type App struct {
-	Name              string `yaml:"name"`
-	DatabaseFile      string `yaml:"database_file"`
-	MQTTBrokerAddress string `yaml:"mqtt_broker_address"`
-	MQTTPort          int    `yaml:"mqtt_port"`
-	MQTTUsername      string `yaml:"mqtt_username"`
-	MQTTPassword      string `yaml:"mqtt_password"`
-	MQTTTopicPrefix   string `yaml:"mqtt_topic_prefix"`
-	MQTTTopicSuffix   string `yaml:"mqtt_topic_suffix"`
-	DefaultChannelKey string `yaml:"default_channel_key"`
-	LogLevel          string `yaml:"log_level"`
-	CaptureStoreRaw   bool   `yaml:"capture_store_raw"`
-	WALAutocheckpoint int    `yaml:"wal_autocheckpoint_pages"`
-	JournalSizeLimit  int    `yaml:"journal_size_limit_bytes"`
-	SQLiteCacheKiB    int    `yaml:"sqlite_cache_kib"`
-	SQLiteDisableMmap bool   `yaml:"sqlite_disable_mmap"`
-	ConfigPath        string `yaml:"-"`
+	Name                 string `yaml:"name"`
+	DatabaseFile         string `yaml:"database_file"`
+	MQTTBrokerAddress    string `yaml:"mqtt_broker_address"`
+	MQTTPort             int    `yaml:"mqtt_port"`
+	MQTTUsername         string `yaml:"mqtt_username"`
+	MQTTPassword         string `yaml:"mqtt_password"`
+	MQTTTopicPrefix      string `yaml:"mqtt_topic_prefix"`
+	MQTTTopicSuffix      string `yaml:"mqtt_topic_suffix"`
+	DefaultChannelKey    string `yaml:"default_channel_key"`
+	LogLevel             string `yaml:"log_level"`
+	CaptureStoreRaw      bool   `yaml:"capture_store_raw"`
+	WALAutocheckpoint    int    `yaml:"wal_autocheckpoint_pages"`
+	JournalSizeLimit     int    `yaml:"journal_size_limit_bytes"`
+	SQLiteCacheKiB       int    `yaml:"sqlite_cache_kib"`
+	SQLiteDisableMmap    bool   `yaml:"sqlite_disable_mmap"`
+	ObservabilityAddress string `yaml:"observability_address"`
+	MaintenanceInterval  int    `yaml:"maintenance_interval_minutes"`
+	MaxEnvelopeBytes     int    `yaml:"max_envelope_bytes"`
+	ConfigPath           string `yaml:"-"`
 }
 
 func New(defaultPath string) (*App, error) {
@@ -133,6 +136,12 @@ func overrideFromEnv(cfg *App) error {
 			fmt.Sscanf(value, "%d", &cfg.SQLiteCacheKiB)
 		case "sqlite_disable_mmap":
 			cfg.SQLiteDisableMmap = parseBool(value, cfg.SQLiteDisableMmap)
+		case "observability_address":
+			cfg.ObservabilityAddress = value
+		case "maintenance_interval_minutes":
+			fmt.Sscanf(value, "%d", &cfg.MaintenanceInterval)
+		case "max_envelope_bytes":
+			fmt.Sscanf(value, "%d", &cfg.MaxEnvelopeBytes)
 		}
 	}
 	return nil
@@ -151,18 +160,21 @@ func parseBool(value string, fallback bool) bool {
 
 func defaultConfig() *App {
 	return &App{
-		Name:              "Malla",
-		DatabaseFile:      "meshtastic_history.db",
-		MQTTBrokerAddress: "127.0.0.1",
-		MQTTPort:          1883,
-		MQTTTopicPrefix:   "msh",
-		MQTTTopicSuffix:   "/+/+/+/#",
-		DefaultChannelKey: "1PG7OiApB1nwvP+rz05pAQ==",
-		LogLevel:          "INFO",
-		CaptureStoreRaw:   true,
-		WALAutocheckpoint: 1000,
-		JournalSizeLimit:  64 * 1024 * 1024,
-		SQLiteCacheKiB:    8192,
-		SQLiteDisableMmap: true,
+		Name:                 "Malla",
+		DatabaseFile:         "meshtastic_history.db",
+		MQTTBrokerAddress:    "127.0.0.1",
+		MQTTPort:             1883,
+		MQTTTopicPrefix:      "msh",
+		MQTTTopicSuffix:      "/+/+/+/#",
+		DefaultChannelKey:    "1PG7OiApB1nwvP+rz05pAQ==",
+		LogLevel:             "INFO",
+		CaptureStoreRaw:      true,
+		WALAutocheckpoint:    1000,
+		JournalSizeLimit:     64 * 1024 * 1024,
+		SQLiteCacheKiB:       8192,
+		SQLiteDisableMmap:    true,
+		ObservabilityAddress: ":2112",
+		MaintenanceInterval:  360,
+		MaxEnvelopeBytes:     256 * 1024,
 	}
 }

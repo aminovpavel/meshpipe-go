@@ -5,19 +5,24 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
+	"time"
 
 	_ "modernc.org/sqlite"
 
 	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/mw-malla-capture/internal/observability"
 )
 
 // SQLiteConfig holds configuration values for the SQLite writer.
 type SQLiteConfig struct {
-	Path      string
-	QueueSize int
+	Path                string
+	QueueSize           int
+	MaintenanceInterval time.Duration
 }
 
 // Writer is the minimal interface required by the pipeline to persist packets.
@@ -39,21 +44,65 @@ type SQLiteWriter struct {
 	queue chan decode.Packet
 	wg    sync.WaitGroup
 	once  sync.Once
+
+	logger  *slog.Logger
+	metrics *observability.Metrics
+	cache   *nodeCache
+
+	maintenanceInterval time.Duration
+	maintenanceStop     chan struct{}
 }
 
 // NewSQLiteWriter constructs a writer with the provided configuration.
-func NewSQLiteWriter(cfg SQLiteConfig) (*SQLiteWriter, error) {
+func NewSQLiteWriter(cfg SQLiteConfig, opts ...Option) (*SQLiteWriter, error) {
 	if cfg.Path == "" {
 		return nil, errors.New("storage: database path must be provided")
 	}
 	if cfg.QueueSize <= 0 {
 		cfg.QueueSize = 512
 	}
+	if cfg.MaintenanceInterval <= 0 {
+		cfg.MaintenanceInterval = 6 * time.Hour
+	}
 
-	return &SQLiteWriter{
-		cfg:   cfg,
-		queue: make(chan decode.Packet, cfg.QueueSize),
-	}, nil
+	w := &SQLiteWriter{
+		cfg:                 cfg,
+		queue:               make(chan decode.Packet, cfg.QueueSize),
+		logger:              slog.Default(),
+		cache:               newNodeCache(),
+		maintenanceInterval: cfg.MaintenanceInterval,
+		maintenanceStop:     make(chan struct{}),
+	}
+
+	for _, opt := range opts {
+		opt(w)
+	}
+	if w.logger == nil {
+		w.logger = slog.Default()
+	}
+
+	return w, nil
+}
+
+// Option configures the writer.
+type Option func(*SQLiteWriter)
+
+// WithLogger injects a structured logger into the writer.
+func WithLogger(logger *slog.Logger) Option {
+	return func(w *SQLiteWriter) {
+		if logger != nil {
+			w.logger = logger
+		}
+	}
+}
+
+// WithMetrics attaches metrics instrumentation.
+func WithMetrics(metrics *observability.Metrics) Option {
+	return func(w *SQLiteWriter) {
+		if metrics != nil {
+			w.metrics = metrics
+		}
+	}
 }
 
 // Start opens the database, runs migrations, and begins processing the queue.
@@ -62,6 +111,9 @@ func (w *SQLiteWriter) Start(ctx context.Context) error {
 	abs, err := filepath.Abs(w.cfg.Path)
 	if err != nil {
 		return fmt.Errorf("storage: resolve path: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+		return fmt.Errorf("storage: ensure directory: %w", err)
 	}
 
 	db, err := sql.Open("sqlite", abs)
@@ -79,7 +131,16 @@ func (w *SQLiteWriter) Start(ctx context.Context) error {
 		return err
 	}
 
+	if w.cache == nil {
+		w.cache = newNodeCache()
+	}
+	if err := w.cache.load(db); err != nil {
+		db.Close()
+		return fmt.Errorf("storage: load node cache: %w", err)
+	}
+
 	w.db = db
+	w.startMaintenance(ctx)
 
 	w.wg.Add(1)
 	go w.loop(ctx)
@@ -93,8 +154,10 @@ func (w *SQLiteWriter) Store(ctx context.Context, pkt decode.Packet) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case w.queue <- pkt:
+		w.metrics.ObserveQueueDepth(len(w.queue))
 		return nil
 	default:
+		w.metrics.ObserveQueueDepth(len(w.queue))
 		return errors.New("storage: queue full")
 	}
 }
@@ -102,13 +165,84 @@ func (w *SQLiteWriter) Store(ctx context.Context, pkt decode.Packet) error {
 // Stop finalises the writer and closes the database connection.
 func (w *SQLiteWriter) Stop() error {
 	w.once.Do(func() {
+		if w.maintenanceStop != nil {
+			close(w.maintenanceStop)
+		}
 		close(w.queue)
 		w.wg.Wait()
 		if w.db != nil {
+			w.runFinalMaintenance()
 			_ = w.db.Close()
 		}
+		w.metrics.ObserveQueueDepth(0)
 	})
 	return nil
+}
+
+func (w *SQLiteWriter) startMaintenance(ctx context.Context) {
+	if w.maintenanceInterval <= 0 || w.db == nil {
+		return
+	}
+
+	ticker := time.NewTicker(w.maintenanceInterval)
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-w.maintenanceStop:
+				return
+			case <-ticker.C:
+				if err := w.runMaintenance(ctx); err != nil && !errors.Is(err, context.Canceled) {
+					w.logger.Warn("sqlite maintenance failed", slog.Any("error", err))
+				}
+			}
+		}
+	}()
+}
+
+func (w *SQLiteWriter) runMaintenance(ctx context.Context) error {
+	if w.db == nil {
+		return nil
+	}
+
+	start := time.Now()
+	if _, err := w.db.ExecContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			return context.Canceled
+		}
+		return fmt.Errorf("maintenance: wal_checkpoint: %w", err)
+	}
+	if _, err := w.db.ExecContext(ctx, "PRAGMA optimize"); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+			return context.Canceled
+		}
+		return fmt.Errorf("maintenance: optimize: %w", err)
+	}
+	if w.logger != nil {
+		w.logger.Info("sqlite maintenance completed",
+			slog.Duration("duration", time.Since(start)))
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) runFinalMaintenance() {
+	if w.db == nil {
+		return
+	}
+
+	if _, err := w.db.Exec("PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
+		w.logger.Warn("final maintenance checkpoint failed", slog.Any("error", err))
+	}
+	if _, err := w.db.Exec("VACUUM"); err != nil {
+		w.logger.Warn("final maintenance vacuum failed", slog.Any("error", err))
+	}
+	if _, err := w.db.Exec("ANALYZE"); err != nil {
+		w.logger.Warn("final maintenance analyze failed", slog.Any("error", err))
+	}
 }
 
 func (w *SQLiteWriter) loop(ctx context.Context) {
@@ -163,21 +297,99 @@ func (w *SQLiteWriter) loop(ctx context.Context) {
 			if !ok {
 				return
 			}
+			w.metrics.ObserveQueueDepth(len(w.queue))
 
-			if err := insertPacket(stmt, pkt); err != nil {
+			packetID, err := insertPacket(stmt, pkt)
+			if err != nil {
+				w.metrics.IncStoreErrors()
 				w.publishErr(err)
+				continue
 			}
-			if pkt.Node != nil {
-				if err := w.upsertNode(pkt.Node); err != nil {
+
+			if w.cache != nil {
+				if entry, created := w.cache.ensureGateway(pkt.GatewayID, pkt.ReceivedAt); created {
+					if err := w.upsertNode(entry); err != nil {
+						w.metrics.IncStoreErrors()
+						w.publishErr(err)
+					} else {
+						w.metrics.IncNodeUpsert()
+					}
+				}
+
+				if nodeEntry := w.cache.updateFromPacket(pkt); nodeEntry != nil {
+					if err := w.upsertNode(nodeEntry); err != nil {
+						w.metrics.IncStoreErrors()
+						w.publishErr(err)
+					} else {
+						w.metrics.IncNodeUpsert()
+					}
+				}
+			} else if pkt.Node != nil {
+				fallback := &nodeEntry{
+					NodeID:         pkt.From,
+					UserID:         pkt.Node.UserID,
+					HexID:          pkt.Node.UserID,
+					LongName:       pkt.Node.LongName,
+					ShortName:      pkt.Node.ShortName,
+					HWModel:        pkt.Node.HWModel,
+					Role:           pkt.Node.Role,
+					IsLicensed:     pkt.Node.IsLicensed,
+					MacAddress:     pkt.Node.MacAddress,
+					PrimaryChannel: nonEmpty(pkt.Node.PrimaryChannel, pkt.ChannelID),
+					Snr:            pkt.Node.Snr,
+					LastHeard:      pkt.Node.LastHeard,
+					ViaMQTT:        pkt.Node.ViaMQTT,
+					Channel:        pkt.Node.Channel,
+					IsFavorite:     pkt.Node.IsFavorite,
+					IsIgnored:      pkt.Node.IsIgnored,
+					IsKeyVerified:  pkt.Node.IsKeyVerified,
+					FirstSeen:      pkt.ReceivedAt,
+					LastUpdated:    pkt.ReceivedAt,
+				}
+				if pkt.Node.HopsAway != nil {
+					val := *pkt.Node.HopsAway
+					fallback.HopsAway = &val
+				}
+				if err := w.upsertNode(fallback); err != nil {
+					w.metrics.IncStoreErrors()
 					w.publishErr(err)
+				} else {
+					w.metrics.IncNodeUpsert()
+				}
+			}
+
+			if pkt.Text != nil {
+				if err := w.storeText(packetID, pkt.Text); err != nil {
+					w.metrics.IncStoreErrors()
+					w.publishErr(err)
+				} else {
+					w.metrics.IncTextStored()
+				}
+			}
+
+			if pkt.Position != nil {
+				if err := w.storePosition(packetID, pkt.Position); err != nil {
+					w.metrics.IncStoreErrors()
+					w.publishErr(err)
+				} else {
+					w.metrics.IncPositionStored()
+				}
+			}
+
+			if pkt.Telemetry != nil {
+				if err := w.storeTelemetry(packetID, pkt.Telemetry); err != nil {
+					w.metrics.IncStoreErrors()
+					w.publishErr(err)
+				} else {
+					w.metrics.IncTelemetryStored()
 				}
 			}
 		}
 	}
 }
 
-func insertPacket(stmt *sql.Stmt, pkt decode.Packet) error {
-	_, err := stmt.Exec(
+func insertPacket(stmt *sql.Stmt, pkt decode.Packet) (int64, error) {
+	res, err := stmt.Exec(
 		pkt.ReceivedAt.UnixMicro(),
 		pkt.Topic,
 		int64(pkt.From),
@@ -213,21 +425,103 @@ func insertPacket(stmt *sql.Stmt, pkt decode.Packet) error {
 		boolToInt(pkt.Retained),
 	)
 	if err != nil {
-		return fmt.Errorf("storage: insert packet: %w", err)
+		return 0, fmt.Errorf("storage: insert packet: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("storage: last insert id: %w", err)
+	}
+	return id, nil
+}
+
+func (w *SQLiteWriter) storeText(packetID int64, msg *decode.TextMessage) error {
+	_, err := w.db.Exec(`INSERT INTO text_messages (
+        packet_id,
+        text,
+        want_response,
+        dest,
+        source,
+        request_id,
+        reply_id,
+        emoji,
+        bitfield,
+        compressed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		packetID,
+		msg.Text,
+		boolToInt(msg.WantResponse),
+		int64(msg.Dest),
+		int64(msg.Source),
+		int64(msg.RequestID),
+		int64(msg.ReplyID),
+		int64(msg.Emoji),
+		int64(msg.Bitfield),
+		boolToInt(msg.Compressed),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: insert text message: %w", err)
 	}
 	return nil
 }
 
-func (w *SQLiteWriter) upsertNode(node *decode.NodeInfo) error {
+func (w *SQLiteWriter) storePosition(packetID int64, pos *decode.PositionInfo) error {
+	_, err := w.db.Exec(`INSERT INTO positions (
+        packet_id,
+        latitude,
+        longitude,
+        altitude,
+        time,
+        timestamp,
+        raw_payload
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		packetID,
+		nullFloat64(pos.Latitude),
+		nullFloat64(pos.Longitude),
+		nullInt32(pos.Altitude),
+		int64(pos.Time),
+		int64(pos.Timestamp),
+		nullBytes(pos.RawPayload),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: insert position: %w", err)
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) storeTelemetry(packetID int64, tele *decode.TelemetryInfo) error {
+	_, err := w.db.Exec(`INSERT INTO telemetry (
+        packet_id,
+        raw_payload
+    ) VALUES (?, ?)`,
+		packetID,
+		nullBytes(tele.RawPayload),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: insert telemetry: %w", err)
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) upsertNode(entry *nodeEntry) error {
+	if entry == nil {
+		return nil
+	}
+
+	if entry.HexID == "" {
+		entry.HexID = entry.UserID
+	}
+
 	_, err := w.db.Exec(`INSERT INTO node_info (
 	    node_id,
 	    user_id,
+	    hex_id,
 	    long_name,
 	    short_name,
 	    hw_model,
 	    role,
 	    is_licensed,
 	    mac_address,
+	    primary_channel,
 	    snr,
 	    last_heard,
 	    via_mqtt,
@@ -236,16 +530,19 @@ func (w *SQLiteWriter) upsertNode(node *decode.NodeInfo) error {
 	    is_favorite,
 	    is_ignored,
 	    is_key_verified,
-	    updated_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	    first_seen,
+	    last_updated
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(node_id) DO UPDATE SET
 	    user_id=excluded.user_id,
+	    hex_id=excluded.hex_id,
 	    long_name=excluded.long_name,
 	    short_name=excluded.short_name,
 	    hw_model=excluded.hw_model,
 	    role=excluded.role,
 	    is_licensed=excluded.is_licensed,
 	    mac_address=excluded.mac_address,
+	    primary_channel=excluded.primary_channel,
 	    snr=excluded.snr,
 	    last_heard=excluded.last_heard,
 	    via_mqtt=excluded.via_mqtt,
@@ -254,24 +551,28 @@ func (w *SQLiteWriter) upsertNode(node *decode.NodeInfo) error {
 	    is_favorite=excluded.is_favorite,
 	    is_ignored=excluded.is_ignored,
 	    is_key_verified=excluded.is_key_verified,
-	    updated_at=excluded.updated_at`,
-		int64(node.NodeID),
-		nullString(node.UserID),
-		nullString(node.LongName),
-		nullString(node.ShortName),
-		int64(node.HWModel),
-		int64(node.Role),
-		boolToInt(node.IsLicensed),
-		nullString(node.MacAddress),
-		float64(node.Snr),
-		int64(node.LastHeard),
-		boolToInt(node.ViaMQTT),
-		int64(node.Channel),
-		nullUint32(node.HopsAway),
-		boolToInt(node.IsFavorite),
-		boolToInt(node.IsIgnored),
-		boolToInt(node.IsKeyVerified),
-		node.UpdatedAt.UnixMicro(),
+	    first_seen=MIN(node_info.first_seen, excluded.first_seen),
+	    last_updated=excluded.last_updated`,
+		int64(entry.NodeID),
+		nullString(entry.UserID),
+		nullString(entry.HexID),
+		nullString(entry.LongName),
+		nullString(entry.ShortName),
+		int64(entry.HWModel),
+		int64(entry.Role),
+		boolToInt(entry.IsLicensed),
+		nullString(entry.MacAddress),
+		nullString(entry.PrimaryChannel),
+		float64(entry.Snr),
+		int64(entry.LastHeard),
+		boolToInt(entry.ViaMQTT),
+		int64(entry.Channel),
+		nullUint32(entry.HopsAway),
+		boolToInt(entry.IsFavorite),
+		boolToInt(entry.IsIgnored),
+		boolToInt(entry.IsKeyVerified),
+		timeToSeconds(entry.FirstSeen),
+		timeToSeconds(entry.LastUpdated),
 	)
 	if err != nil {
 		return fmt.Errorf("storage: upsert node: %w", err)
@@ -342,14 +643,16 @@ func migrate(db *sql.DB) error {
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS node_info (
-	    node_id INTEGER PRIMARY KEY,
+	 	    node_id INTEGER PRIMARY KEY,
 	    user_id TEXT,
+	    hex_id TEXT,
 	    long_name TEXT,
 	    short_name TEXT,
 	    hw_model INTEGER,
 	    role INTEGER,
 	    is_licensed INTEGER,
 	    mac_address TEXT,
+	    primary_channel TEXT,
 	    snr REAL,
 	    last_heard INTEGER,
 	    via_mqtt INTEGER,
@@ -358,13 +661,167 @@ func migrate(db *sql.DB) error {
 	    is_favorite INTEGER,
 	    is_ignored INTEGER,
 	    is_key_verified INTEGER,
-	    updated_at INTEGER
-	)`)
+	    first_seen REAL,
+	    last_updated REAL
+	 )`)
 	if err != nil {
 		return fmt.Errorf("storage: migrate node_info: %w", err)
 	}
 
+	if err := renameColumnIfExists(db, "node_info", "updated_at", "last_updated"); err != nil {
+		return fmt.Errorf("storage: rename updated_at column: %w", err)
+	}
+
+	if err := addColumnIfMissing(db, "node_info", "hex_id", "TEXT"); err != nil {
+		return fmt.Errorf("storage: add hex_id column: %w", err)
+	}
+	if err := addColumnIfMissing(db, "node_info", "primary_channel", "TEXT"); err != nil {
+		return fmt.Errorf("storage: add primary_channel column: %w", err)
+	}
+	if err := addColumnIfMissing(db, "node_info", "first_seen", "REAL"); err != nil {
+		return fmt.Errorf("storage: add first_seen column: %w", err)
+	}
+	if err := addColumnIfMissing(db, "node_info", "last_updated", "REAL"); err != nil {
+		return fmt.Errorf("storage: add last_updated column: %w", err)
+	}
+
+	if err := copyColumnIfExists(db, "node_info", "updated_at", "last_updated"); err != nil {
+		return fmt.Errorf("storage: copy updated_at to last_updated: %w", err)
+	}
+
+	if err := populateHexColumn(db); err != nil {
+		return fmt.Errorf("storage: populate hex column: %w", err)
+	}
+
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_node_hex_id ON node_info(hex_id)`); err != nil {
+		return fmt.Errorf("storage: create hex_id index: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_node_primary_channel ON node_info(primary_channel)`); err != nil {
+		return fmt.Errorf("storage: create primary_channel index: %w", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS text_messages (
+	    packet_id INTEGER PRIMARY KEY,
+	    text TEXT,
+	    want_response INTEGER,
+	    dest INTEGER,
+	    source INTEGER,
+	    request_id INTEGER,
+	    reply_id INTEGER,
+	    emoji INTEGER,
+	    bitfield INTEGER,
+	    compressed INTEGER,
+	    FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	)`)
+	if err != nil {
+		return fmt.Errorf("storage: migrate text_messages: %w", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS positions (
+	    packet_id INTEGER PRIMARY KEY,
+	    latitude REAL,
+	    longitude REAL,
+	    altitude INTEGER,
+	    time INTEGER,
+	    timestamp INTEGER,
+	    raw_payload BLOB,
+	    FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	)`)
+	if err != nil {
+		return fmt.Errorf("storage: migrate positions: %w", err)
+	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS telemetry (
+	    packet_id INTEGER PRIMARY KEY,
+	    raw_payload BLOB,
+	    FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	)`)
+	if err != nil {
+		return fmt.Errorf("storage: migrate telemetry: %w", err)
+	}
+
 	return nil
+}
+
+func addColumnIfMissing(db *sql.DB, table, column, columnType string) error {
+	query := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, columnType)
+	if _, err := db.Exec(query); err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "duplicate column name") {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func renameColumnIfExists(db *sql.DB, table, oldName, newName string) error {
+	query := fmt.Sprintf("ALTER TABLE %s RENAME COLUMN %s TO %s", table, oldName, newName)
+	if _, err := db.Exec(query); err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "no such column") || strings.Contains(errMsg, "duplicate column name") || strings.Contains(errMsg, "syntax error") {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func copyColumnIfExists(db *sql.DB, table, from, to string) error {
+	hasFrom, err := columnExists(db, table, from)
+	if err != nil {
+		return err
+	}
+	hasTo, err := columnExists(db, table, to)
+	if err != nil {
+		return err
+	}
+	if !hasFrom || !hasTo {
+		return nil
+	}
+	query := fmt.Sprintf("UPDATE %s SET %s = COALESCE(%s, %s) WHERE %s IS NOT NULL", table, to, to, from, from)
+	if _, err := db.Exec(query); err != nil {
+		return err
+	}
+	return nil
+}
+
+func populateHexColumn(db *sql.DB) error {
+	_, err := db.Exec(`UPDATE node_info SET hex_id = user_id WHERE (hex_id IS NULL OR hex_id = '') AND user_id IS NOT NULL`)
+	return err
+}
+
+func columnExists(db *sql.DB, table, column string) (bool, error) {
+	query := fmt.Sprintf("PRAGMA table_info(%s)", table)
+	rows, err := db.Query(query)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			cid        int
+			name       string
+			typeName   string
+			notNull    int
+			defaultVal sql.NullString
+			pk         int
+		)
+		if err := rows.Scan(&cid, &name, &typeName, &notNull, &defaultVal, &pk); err != nil {
+			return false, err
+		}
+		_ = cid
+		_ = typeName
+		_ = notNull
+		_ = defaultVal
+		_ = pk
+		if strings.EqualFold(name, column) {
+			return true, nil
+		}
+	}
+
+	return false, rows.Err()
 }
 
 func boolToInt(b bool) int {
@@ -388,6 +845,20 @@ func nullBytes(b []byte) interface{} {
 	return b
 }
 
+func nullFloat64(v *float64) interface{} {
+	if v == nil {
+		return nil
+	}
+	return *v
+}
+
+func nullInt32(v *int32) interface{} {
+	if v == nil {
+		return nil
+	}
+	return int64(*v)
+}
+
 func nullUint32(u *uint32) interface{} {
 	if u == nil {
 		return nil
@@ -399,5 +870,5 @@ func (w *SQLiteWriter) publishErr(err error) {
 	if err == nil {
 		return
 	}
-	log.Printf("storage: %v", err)
+	w.logger.Error("storage error", slog.Any("error", err))
 }
