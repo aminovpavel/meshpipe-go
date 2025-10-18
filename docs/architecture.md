@@ -1,7 +1,7 @@
 # Meshpipe — Architecture
 
 ## Overview
-Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes protobuf payloads, and writes normalized records into SQLite. Meshworks Malla deploys this build today, but the architecture is intentionally generic so any Meshtastic installation can reuse the same pipeline and schema.
+Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes protobuf payloads, and writes normalized records into SQLite. [Meshworks Malla](https://github.com/MeshworksOSS/meshworks-malla) deploys this build today, but the architecture is intentionally generic so any Meshtastic installation can reuse the same pipeline and schema.
 
 ```
 +-----------+       +-----------------+       +-----------------+
