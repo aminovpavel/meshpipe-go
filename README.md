@@ -5,12 +5,12 @@
 
 ![Meshpipe banner](assets/meshpipe-banner.jpg)
 
-Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. [Meshworks Malla](https://github.com/MeshworksOSS/meshworks-malla) uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT→SQLite pipeline.
+Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. [Meshworks Malla](https://github.com/aminovpavel/meshworks-malla) uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT→SQLite pipeline.
 
 ## Goals
 - High-throughput, low-latency ingest with predictable memory usage.
 - First-class observability (structured logs, Prometheus metrics, health probes).
-- Compatible schema for `packet_history` / `node_info` so existing dashboards or applications (including [Meshworks Malla](https://github.com/MeshworksOSS/meshworks-malla)) continue to work.
+- Compatible schema for `packet_history` / `node_info` so existing dashboards or applications (including [Meshworks Malla](https://github.com/aminovpavel/meshworks-malla)) continue to work.
 - Configurable via YAML + `MESHPIPE_*` environment overrides (`MALLA_*` remains supported for legacy deployments).
 - Safe rollout strategy (dual-run, diff checks, feature flag).
 
