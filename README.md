@@ -26,6 +26,8 @@ docs/                   # design docs, operational playbooks, migration notes
 ## Documentation
 - [Architecture](docs/architecture.md)
 - [Storage schema & maintenance](docs/storage.md)
+- [Release checklist](docs/release-checklist.md)
+- [Changelog](CHANGELOG.md)
 ```
 
 Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongside the implementation.
