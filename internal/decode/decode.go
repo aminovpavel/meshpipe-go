@@ -15,6 +15,7 @@ type Packet struct {
 	ReceivedAt time.Time
 
 	MessageType string
+	ChannelName string
 	GatewayID   string
 	ChannelID   string
 

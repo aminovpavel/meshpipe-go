@@ -2,6 +2,12 @@ package decode
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"errors"
 	"strings"
 
 	meshtasticpb "github.com/aminovpavel/mw-malla-capture/internal/decode/pb/meshtastic"
@@ -12,6 +18,7 @@ import (
 // MeshtasticConfig controls how packets are decoded.
 type MeshtasticConfig struct {
 	StoreRawEnvelope bool
+	DefaultKeyBase64 string
 }
 
 // MeshtasticDecoder parses MQTT payloads into structured Meshtastic packets.
@@ -34,6 +41,7 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 		Retained:    msg.Retained,
 		ReceivedAt:  msg.Time,
 		MessageType: extractMessageType(msg.Topic),
+		ChannelName: extractChannelName(msg.Topic),
 	}
 
 	if d.cfg.StoreRawEnvelope && len(msg.Payload) > 0 {
@@ -43,6 +51,7 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 	var env meshtasticpb.ServiceEnvelope
 	if err := proto.Unmarshal(msg.Payload, &env); err != nil {
 		packet.ParsingError = err.Error()
+		packet.ProcessedSuccessfully = false
 		return packet, nil
 	}
 
@@ -52,6 +61,7 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 	mesh := env.GetPacket()
 	if mesh == nil {
 		packet.ParsingError = "missing mesh packet"
+		packet.ProcessedSuccessfully = false
 		return packet, nil
 	}
 
@@ -79,8 +89,24 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 		packet.PortNum = int32(data.GetPortnum())
 		packet.PortNumName = portNumName(data.GetPortnum())
 		packet.Payload = append([]byte(nil), data.GetPayload()...)
-	} else if encrypted := mesh.GetEncrypted(); encrypted != nil {
-		packet.Payload = append([]byte(nil), encrypted...)
+	} else if mesh.GetEncrypted() != nil {
+		plaintext, err := d.decryptMeshPacket(mesh, packet.ChannelName)
+		if err != nil {
+			packet.ParsingError = err.Error()
+			packet.ProcessedSuccessfully = false
+			return packet, nil
+		}
+
+		data := &meshtasticpb.Data{}
+		if err := proto.Unmarshal(plaintext, data); err != nil {
+			packet.ParsingError = err.Error()
+			packet.ProcessedSuccessfully = false
+			return packet, nil
+		}
+
+		packet.PortNum = int32(data.GetPortnum())
+		packet.PortNumName = portNumName(data.GetPortnum())
+		packet.Payload = append([]byte(nil), data.GetPayload()...)
 	}
 
 	packet.PayloadLength = len(packet.Payload)
@@ -89,10 +115,64 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 	return packet, nil
 }
 
+func (d MeshtasticDecoder) decryptMeshPacket(mesh *meshtasticpb.MeshPacket, channelName string) ([]byte, error) {
+	keyBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(d.cfg.DefaultKeyBase64))
+	if err != nil {
+		return nil, errors.New("decode: invalid base64 default key")
+	}
+	if len(keyBytes) != 32 {
+		return nil, errors.New("decode: default key must be 32 bytes after decoding")
+	}
+
+	if plaintext, err := decryptPayloadWithKey(mesh, keyBytes); err == nil {
+		return plaintext, nil
+	}
+
+	if channelName != "" {
+		channelKey := deriveChannelKey(keyBytes, channelName)
+		if plaintext, err := decryptPayloadWithKey(mesh, channelKey); err == nil {
+			return plaintext, nil
+		}
+	}
+
+	return nil, errors.New("decode: unable to decrypt payload")
+}
+
+func decryptPayloadWithKey(mesh *meshtasticpb.MeshPacket, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, aes.BlockSize)
+	binary.LittleEndian.PutUint64(nonce[:8], uint64(mesh.GetId()))
+	binary.LittleEndian.PutUint64(nonce[8:], uint64(mesh.GetFrom()))
+
+	stream := cipher.NewCTR(block, nonce)
+	plaintext := make([]byte, len(mesh.GetEncrypted()))
+	stream.XORKeyStream(plaintext, mesh.GetEncrypted())
+	return plaintext, nil
+}
+
+func deriveChannelKey(defaultKey []byte, channelName string) []byte {
+	hasher := sha256.New()
+	hasher.Write(defaultKey)
+	hasher.Write([]byte(channelName))
+	return hasher.Sum(nil)
+}
+
 func extractMessageType(topic string) string {
 	parts := strings.Split(topic, "/")
 	if len(parts) >= 4 {
 		return parts[3]
+	}
+	return ""
+}
+
+func extractChannelName(topic string) string {
+	parts := strings.Split(topic, "/")
+	if len(parts) >= 5 {
+		return parts[4]
 	}
 	return ""
 }
