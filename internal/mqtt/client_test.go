@@ -3,7 +3,7 @@ package mqtt_test
 import (
 	"testing"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 )
 
 func TestSubscriptionTopic(t *testing.T) {

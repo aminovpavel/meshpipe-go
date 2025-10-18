@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	meshtasticpb "github.com/aminovpavel/mw-malla-capture/internal/decode/pb/meshtastic"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	meshtasticpb "github.com/aminovpavel/meshpipe-go/internal/decode/pb/meshtastic"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 )
 
 // Packet represents a Meshtastic packet ready for persistence.

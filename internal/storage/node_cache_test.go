@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
 )
 
 func TestNodeCacheUpdatePreservesFirstSeen(t *testing.T) {

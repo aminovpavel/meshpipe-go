@@ -3,7 +3,7 @@ package observability
 import (
 	"sync/atomic"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

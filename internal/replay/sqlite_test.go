@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
-	meshtasticpb "github.com/aminovpavel/mw-malla-capture/internal/decode/pb/meshtastic"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
-	"github.com/aminovpavel/mw-malla-capture/internal/observability"
-	"github.com/aminovpavel/mw-malla-capture/internal/storage"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
+	meshtasticpb "github.com/aminovpavel/meshpipe-go/internal/decode/pb/meshtastic"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/observability"
+	"github.com/aminovpavel/meshpipe-go/internal/storage"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
-	"github.com/aminovpavel/mw-malla-capture/internal/storage"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/storage"
 	_ "modernc.org/sqlite"
 )
 

@@ -14,8 +14,8 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
-	"github.com/aminovpavel/mw-malla-capture/internal/observability"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/observability"
 )
 
 // SQLiteConfig holds configuration values for the SQLite writer.

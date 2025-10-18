@@ -11,11 +11,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/config"
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
-	"github.com/aminovpavel/mw-malla-capture/internal/observability"
-	"github.com/aminovpavel/mw-malla-capture/internal/replay"
-	"github.com/aminovpavel/mw-malla-capture/internal/storage"
+	"github.com/aminovpavel/meshpipe-go/internal/config"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/observability"
+	"github.com/aminovpavel/meshpipe-go/internal/replay"
+	"github.com/aminovpavel/meshpipe-go/internal/storage"
 )
 
 func main() {

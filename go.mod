@@ -1,4 +1,4 @@
-module github.com/aminovpavel/mw-malla-capture
+module github.com/aminovpavel/meshpipe-go
 
 go 1.24.0
 

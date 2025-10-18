@@ -3,8 +3,8 @@ package app_test
 import (
 	"testing"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/app"
-	"github.com/aminovpavel/mw-malla-capture/internal/config"
+	"github.com/aminovpavel/meshpipe-go/internal/app"
+	"github.com/aminovpavel/meshpipe-go/internal/config"
 )
 
 func TestBuildMQTTConfig(t *testing.T) {

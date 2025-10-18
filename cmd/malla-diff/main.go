@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/diff"
+	"github.com/aminovpavel/meshpipe-go/internal/diff"
 )
 
 func main() {

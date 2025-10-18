@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	meshtasticpb "github.com/aminovpavel/mw-malla-capture/internal/decode/pb/meshtastic"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	meshtasticpb "github.com/aminovpavel/meshpipe-go/internal/decode/pb/meshtastic"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 	"google.golang.org/protobuf/proto"
 )
 

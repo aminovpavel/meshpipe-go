@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 )
 
 func main() {

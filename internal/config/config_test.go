@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/config"
+	"github.com/aminovpavel/meshpipe-go/internal/config"
 )
 
 func TestDefaultConfig(t *testing.T) {
