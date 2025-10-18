@@ -22,6 +22,10 @@ internal/observability/ # structured logging, Prometheus metrics, /healthz serve
 internal/pipeline/      # MQTT -> decode -> storage orchestration
 internal/storage/       # SQLite writer, schema migrations, queue management
 docs/                   # design docs, operational playbooks, migration notes
+
+## Documentation
+- [Architecture](docs/architecture.md)
+- [Storage schema & maintenance](docs/storage.md)
 ```
 
 Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongside the implementation.

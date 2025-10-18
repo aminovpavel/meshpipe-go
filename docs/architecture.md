@@ -64,6 +64,8 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 - Honour `CAPTURE_STORE_RAW` flag; derive `message_type` from topic.
 
 ### 4. Storage & Caching
+- Detailed schema and maintenance settings are documented in
+  [`docs/storage.md`](storage.md).
 - `internal/storage`: SQLite adapter (`modernc.org/sqlite`), migrations, PRAGMA configuration.
 - `internal/storage/migrations`: SQL snippets embedded in Go migrate routine.
 - `internal/storage/node_cache`: in-memory snapshot of `node_info` (first_seen/last_updated merge, channel metadata) to avoid per-packet SELECTs.
