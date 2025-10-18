@@ -16,8 +16,20 @@ import (
 
 // SQLiteConfig holds configuration values for the SQLite writer.
 type SQLiteConfig struct {
-	Path      string
-	QueueSize int
+    Path      string
+    QueueSize int
+}
+
+// Writer is the minimal interface required by the pipeline to persist packets.
+type Writer interface {
+    Store(ctx context.Context, pkt decode.Packet) error
+}
+
+// StartStopper represents writers that need explicit lifecycle management.
+type StartStopper interface {
+    Writer
+    Start(ctx context.Context) error
+    Stop() error
 }
 
 // SQLiteWriter persists packets into a SQLite database.

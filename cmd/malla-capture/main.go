@@ -3,31 +3,63 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
+	"log"
 	"os/signal"
 	"syscall"
-	"time"
+
+	"github.com/aminovpavel/mw-malla-capture/internal/app"
+	"github.com/aminovpavel/mw-malla-capture/internal/config"
+	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	"github.com/aminovpavel/mw-malla-capture/internal/pipeline"
+	"github.com/aminovpavel/mw-malla-capture/internal/storage"
 )
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	fmt.Println("mw-malla-capture bootstrap placeholder")
-
-	<-ctx.Done()
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-
-	if err := gracefulShutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-		fmt.Fprintf(os.Stderr, "shutdown error: %v\n", err)
-		os.Exit(1)
+	cfg, err := config.New("")
+	if err != nil {
+		log.Fatalf("load config: %v", err)
 	}
-}
 
-func gracefulShutdown(ctx context.Context) error {
-	// TODO: plug in service teardown once the pipeline is wired.
-	return ctx.Err()
+	mqttCfg := app.BuildMQTTConfig(cfg)
+	client, err := mqtt.NewClient(mqttCfg)
+	if err != nil {
+		log.Fatalf("init mqtt client: %v", err)
+	}
+
+	decoder := decode.PassthroughDecoder{}
+
+	writer, err := storage.NewSQLiteWriter(storage.SQLiteConfig{Path: cfg.DatabaseFile})
+	if err != nil {
+		log.Fatalf("init storage writer: %v", err)
+	}
+
+	if err := writer.Start(ctx); err != nil {
+		log.Fatalf("start storage writer: %v", err)
+	}
+	defer func() {
+		if err := writer.Stop(); err != nil {
+			log.Printf("storage stop error: %v", err)
+		}
+	}()
+
+	pipe := pipeline.New(client, decoder, writer)
+
+	go func() {
+		for err := range pipe.Errors() {
+			if err == nil || errors.Is(err, context.Canceled) {
+				continue
+			}
+			log.Printf("pipeline error: %v", err)
+		}
+	}()
+
+	log.Printf("malla-capture starting (broker %s:%d)", mqttCfg.BrokerHost, mqttCfg.BrokerPort)
+
+	if err := pipe.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		log.Printf("pipeline stopped with error: %v", err)
+	}
 }
