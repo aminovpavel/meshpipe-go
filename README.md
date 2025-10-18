@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/aminovpavel/meshpipe-go/actions/workflows/ci.yml/badge.svg)](https://github.com/aminovpavel/meshpipe-go/actions/workflows/ci.yml)
 [![Container](https://img.shields.io/badge/ghcr.io-aminovpavel%2Fmeshpipe--go-1f6feb?logo=github)](https://github.com/aminovpavel/meshpipe-go/pkgs/container/meshpipe-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/aminovpavel/meshpipe-go)](https://goreportcard.com/report/github.com/aminovpavel/meshpipe-go)
 
 ![Meshpipe banner](assets/meshpipe-banner.jpg)
 
