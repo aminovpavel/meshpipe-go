@@ -13,13 +13,13 @@ Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes 
 ```
 
 ## Key Components (current)
-- **cmd/malla-capture** – entrypoint, wiring config, logging, metrics, pipeline startup, graceful shutdown.
+- **cmd/meshpipe** – entrypoint, wiring config, logging, metrics, pipeline startup, graceful shutdown.
 - **internal/config** – YAML + env loader matching the Python defaults. Ensures parity for compose/helm deployments.
 - **internal/mqtt** – wrapper around paho.golang (v2) with resilient reconnect logic and backpressure-aware subscription handling.
 - **internal/decode** – protobuf bindings generated from Meshtastic definitions, plus helpers for channel-key derivation, AES-CTR decryption, and payload enrichment.
 - **internal/storage** – SQLite writer with connection tuning, PRAGMA management, schema migrations, and batch inserts backed by a bounded queue.
 - **internal/observability** – structured logging helpers, Prometheus metrics registry, and `/metrics` + `/healthz` HTTP server.
-- **internal/storage/node_cache** – in-memory node cache (mirrors `node_info`) с первичной/последней отметкой времени и merge-логикой, работает внутри SQLite writer.
+- **internal/storage/node_cache** – in-memory node cache (mirrors `node_info`) that tracks first_seen/last_updated timestamps and merges node metadata inside the SQLite writer.
 - **internal/metrics** – Prometheus exporter, structured logging, health endpoints.
 - **internal/replay** – utilities for offline packet replay / diffing against Python capture outputs (used for migration validation).
 
@@ -41,7 +41,7 @@ Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes 
 
 ### 1. Config & Bootstrap
 - `internal/config` loads YAML + environment overrides and returns `config.App`.
-- `cmd/malla-capture/main.go` initialises logging/metrics/pipeline and handles graceful shutdown.
+- `cmd/meshpipe/main.go` initialises logging/metrics/pipeline and handles graceful shutdown.
 - Planned helper packages: `internal/logging`, `internal/metrics`, `internal/app` for dependency wiring.
 
 **Startup sequence:**
@@ -77,17 +77,17 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 - Dockerfile builds a CGO-enabled binary via multi-stage (golang:1.24 → debian-slim) and ships a healthcheck that runs `PRAGMA integrity_check` against the configured SQLite path.
 - Guardrails: MQTT payloads larger than `max_envelope_bytes` (default 256 KiB) are dropped before decode (`messages_dropped_total` metric) to avoid runaway memory/disk writes.
 - `internal/replay`: helpers to stream existing packet_history rows (via raw ServiceEnvelope blobs) back through the Go pipeline, used by the replay CLI for parity checks.
-- `internal/diff`: SQLite diff utilities for comparing packet_history/node_info footprints across databases (используются CLI).
+- `internal/diff`: SQLite diff utilities for comparing packet_history/node_info footprints across databases (consumed by the CLI tools).
 
 ### 5. Observability
 - `internal/observability`: structured logging (`slog`), Prometheus metrics (ingest throughput, errors, queue depth, node upserts), and health endpoint wiring.
-- `/metrics` served via `promhttp` on `MALLA_OBSERVABILITY_ADDRESS` (default `:2112`); `/healthz` returns 200 unless recent pipeline/storage errors mark the collector unhealthy.
-- Structured logs (text or JSON) honour `MALLA_LOG_LEVEL`; pipeline/storage components accept injected loggers to ensure consistent context.
+- `/metrics` served via `promhttp` on `MESHPIPE_OBSERVABILITY_ADDRESS` (default `:2112`); `/healthz` returns 200 unless recent pipeline/storage errors mark the collector unhealthy.
+- Structured logs (text or JSON) honour `MESHPIPE_LOG_LEVEL`; pipeline/storage components accept injected loggers to ensure consistent context.
 
 ### 6. Testing Strategy
 - Unit: config, crypto, decoder, storage (in-memory), node cache updates.
-- Integration: embedded MQTT broker (mochi-co/mqtt), run pipeline, inspect SQLite output. `cmd/malla-replay` + `cmd/malla-diff` составляют baseline-поток «Python → Go → сравнить».
-- Replay tool: CLI `cmd/malla-replay` to feed recorded frames.
+- Integration: embedded MQTT broker (mochi-co/mqtt), run pipeline, inspect SQLite output. `cmd/meshpipe-replay` + `cmd/meshpipe-diff` provide the baseline workflow (“legacy → Meshpipe → diff”).
+- Replay tool: CLI `cmd/meshpipe-replay` to feed recorded frames.
 - Benchmarks: `testing.B` + replay datasets.
 
 ### 7. Deployment & Rollout

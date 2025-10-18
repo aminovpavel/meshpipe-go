@@ -32,7 +32,7 @@ func main() {
 		SampleLimit: *sample,
 	})
 	if err != nil {
-		log.Fatalf("malla-diff: %v", err)
+		log.Fatalf("meshpipe-diff: %v", err)
 	}
 
 	fmt.Println("=== packet_history ===")

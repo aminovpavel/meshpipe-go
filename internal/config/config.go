@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const envPrefix = "MALLA_"
+var envPrefixes = []string{"MESHPIPE_", "MALLA_"}
 
 // App holds user-facing configuration derived from YAML + environment overrides.
 type App struct {
@@ -56,8 +56,10 @@ func New(defaultPath string) (*App, error) {
 }
 
 func resolveConfigPath(defaultPath string) string {
-	if override := os.Getenv("MALLA_CONFIG_FILE"); override != "" {
-		return override
+	for _, key := range []string{"MESHPIPE_CONFIG_FILE", "MALLA_CONFIG_FILE"} {
+		if override := os.Getenv(key); override != "" {
+			return override
+		}
 	}
 	if defaultPath == "" {
 		return "config.yaml"
@@ -93,16 +95,16 @@ func loadFromFile(cfg *App, path string) error {
 
 func overrideFromEnv(cfg *App) error {
 	for _, key := range os.Environ() {
-		if !strings.HasPrefix(key, envPrefix) {
-			continue
-		}
-
 		parts := strings.SplitN(key, "=", 2)
 		if len(parts) != 2 {
 			continue
 		}
 
-		name := strings.TrimPrefix(parts[0], envPrefix)
+		prefix, name := matchPrefix(parts[0])
+		if prefix == "" {
+			continue
+		}
+
 		value := parts[1]
 
 		switch strings.ToLower(name) {
@@ -160,7 +162,7 @@ func parseBool(value string, fallback bool) bool {
 
 func defaultConfig() *App {
 	return &App{
-		Name:                 "Malla",
+		Name:                 "Meshpipe",
 		DatabaseFile:         "meshtastic_history.db",
 		MQTTBrokerAddress:    "127.0.0.1",
 		MQTTPort:             1883,
@@ -177,4 +179,13 @@ func defaultConfig() *App {
 		MaintenanceInterval:  360,
 		MaxEnvelopeBytes:     256 * 1024,
 	}
+}
+
+func matchPrefix(key string) (string, string) {
+	for _, prefix := range envPrefixes {
+		if strings.HasPrefix(key, prefix) {
+			return prefix, strings.TrimPrefix(key, prefix)
+		}
+	}
+	return "", ""
 }

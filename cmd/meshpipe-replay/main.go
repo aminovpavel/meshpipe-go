@@ -21,7 +21,7 @@ import (
 func main() {
 	var (
 		source     = flag.String("source", "", "Path to SQLite capture database with packet_history")
-		output     = flag.String("output", "malla_replay_output.db", "Path to SQLite database to write")
+		output     = flag.String("output", "meshpipe_replay_output.db", "Path to SQLite database to write")
 		configPath = flag.String("config", "", "Path to config.yaml (defaults to config.yaml in cwd)")
 		force      = flag.Bool("force", false, "Overwrite output database if it exists")
 		startID    = flag.Int64("start-id", 0, "Replay starting from packet_history.id (inclusive)")
@@ -31,11 +31,11 @@ func main() {
 	flag.Parse()
 
 	if *source == "" {
-		log.Fatal("malla-replay: --source is required")
+		log.Fatal("meshpipe-replay: --source is required")
 	}
 
 	if err := ensureOutput(*output, *force); err != nil {
-		log.Fatalf("malla-replay: %v", err)
+		log.Fatalf("meshpipe-replay: %v", err)
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -43,15 +43,15 @@ func main() {
 
 	cfg, err := config.New(*configPath)
 	if err != nil {
-		log.Fatalf("malla-replay: load config: %v", err)
+		log.Fatalf("meshpipe-replay: load config: %v", err)
 	}
 
 	if cfg.DefaultChannelKey == "" {
-		log.Println("malla-replay: warning: default channel key is empty; encrypted packets may fail to decode")
+		log.Println("meshpipe-replay: warning: default channel key is empty; encrypted packets may fail to decode")
 	}
 
 	logger := observability.NewLogger(cfg.LogLevel)
-	metrics := observability.NewMetrics(observability.WithNamespace("malla_replay"))
+	metrics := observability.NewMetrics(observability.WithNamespace("meshpipe_replay"))
 
 	decoder := decode.NewMeshtasticDecoder(decode.MeshtasticConfig{
 		StoreRawEnvelope: cfg.CaptureStoreRaw,
@@ -64,15 +64,15 @@ func main() {
 		storage.WithMetrics(metrics),
 	)
 	if err != nil {
-		log.Fatalf("malla-replay: init storage writer: %v", err)
+		log.Fatalf("meshpipe-replay: init storage writer: %v", err)
 	}
 
 	if err := writer.Start(ctx); err != nil {
-		log.Fatalf("malla-replay: start storage writer: %v", err)
+		log.Fatalf("meshpipe-replay: start storage writer: %v", err)
 	}
 	defer func() {
 		if err := writer.Stop(); err != nil {
-			log.Printf("malla-replay: warning: stop writer: %v", err)
+			log.Printf("meshpipe-replay: warning: stop writer: %v", err)
 		}
 	}()
 
@@ -83,7 +83,7 @@ func main() {
 		MaxEnvelopeBytes: cfg.MaxEnvelopeBytes,
 	})
 	if err != nil {
-		log.Fatalf("malla-replay: %v", err)
+		log.Fatalf("meshpipe-replay: %v", err)
 	}
 
 	logger.Info("replay completed",

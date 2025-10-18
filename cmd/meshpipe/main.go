@@ -92,7 +92,7 @@ func main() {
 		}
 	}()
 
-	logger.Info("malla-capture starting",
+	logger.Info("meshpipe starting",
 		slog.String("broker_host", mqttCfg.BrokerHost),
 		slog.Int("broker_port", mqttCfg.BrokerPort),
 		slog.String("observability_address", cfg.ObservabilityAddress),
@@ -102,5 +102,5 @@ func main() {
 		logger.Error("pipeline stopped with error", slog.Any("error", err))
 	}
 
-	logger.Info("malla-capture stopped")
+	logger.Info("meshpipe stopped")
 }

@@ -6,12 +6,12 @@ Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests 
 - High-throughput, low-latency ingest with predictable memory usage.
 - First-class observability (structured logs, Prometheus metrics, health probes).
 - Compatible schema for `packet_history` / `node_info` so existing dashboards or applications (including Meshworks Malla) continue to work.
-- Configurable via YAML + `MALLA_*` environment overrides (compatible with the legacy Python capture).
+- Configurable via YAML + `MESHPIPE_*` environment overrides (`MALLA_*` remains supported for legacy deployments).
 - Safe rollout strategy (dual-run, diff checks, feature flag).
 
 ## Project Layout
 ```
-cmd/malla-capture/      # main entrypoint wiring config, telemetry, and the capture pipeline
+cmd/meshpipe/           # main entrypoint wiring config, telemetry, and the capture pipeline
 internal/config/        # configuration loading (YAML + env overrides)
 internal/observability/ # structured logging, Prometheus metrics, /healthz server
 internal/pipeline/      # MQTT -> decode -> storage orchestration
@@ -23,8 +23,8 @@ Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongs
 
 ### Utilities
 
-- `cmd/malla-replay`: replays `packet_history.raw_service_envelope` data from an existing capture SQLite database through the Go pipeline, producing a fresh SQLite output for parity comparisons.
-- `cmd/malla-diff`: compares two capture SQLite databases (typically Python vs Go output) and reports row-level differences in `packet_history` / `node_info` with sample fingerprints.
+- `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` data from an existing capture SQLite database through the Go pipeline, producing a fresh SQLite output for parity comparisons.
+- `cmd/meshpipe-diff`: compares two capture SQLite databases (typically Python vs Go output) and reports row-level differences in `packet_history` / `node_info` with sample fingerprints.
 
 ### Container
 
@@ -34,8 +34,8 @@ A multi-stage Dockerfile is provided and builds a CGO-enabled binary inside `deb
 docker build -t meshpipe-go:dev .
 docker run --rm \
   -v $PWD/.data:/data \
-  -e MALLA_CONFIG_FILE=/config/config.yaml \
-  -e MALLA_DATABASE_FILE=/data/meshtastic_history.db \
+  -e MESHPIPE_CONFIG_FILE=/config/config.yaml \
+  -e MESHPIPE_DATABASE_FILE=/data/meshtastic_history.db \
   -v $PWD/config.yaml:/config/config.yaml:ro \
   meshpipe-go:dev
 ```
@@ -58,7 +58,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs gofmt, go test, staticcheck, an
 - Run `go test ./...` before pushing.
 - Run static analysis with `staticcheck ./...` (CI enforces it).
 - Use `gofmt` on Go files (CI enforces).
-- Observability server listens on `MALLA_OBSERVABILITY_ADDRESS` (default `:2112`) and exposes `/metrics` (Prometheus) + `/healthz`.
-- SQLite maintenance runs automatically (`PRAGMA wal_checkpoint(TRUNCATE)` + `PRAGMA optimize` every `MALLA_MAINTENANCE_INTERVAL_MINUTES`, default 360). On shutdown the service runs `VACUUM`/`ANALYZE` to keep the file compact.
-- For migration parity: dump the legacy SQLite, run `malla-replay --source legacy.db --output go.db`, затем `malla-diff --old legacy.db --new go.db` — расхождения должны быть нулевыми перед переключением.
-- Guardrails: MQTT payloads > `MALLA_MAX_ENVELOPE_BYTES` (default 256 KiB) drop early with metrics `messages_dropped_total`.
+- Observability server listens on `MESHPIPE_OBSERVABILITY_ADDRESS` (default `:2112`) and exposes `/metrics` (Prometheus) + `/healthz`.
+- SQLite maintenance runs automatically (`PRAGMA wal_checkpoint(TRUNCATE)` + `PRAGMA optimize` every `MESHPIPE_MAINTENANCE_INTERVAL_MINUTES`, default 360). On shutdown the service runs `VACUUM`/`ANALYZE` to keep the file compact.
+- For migration parity: dump the legacy SQLite, run `meshpipe-replay --source legacy.db --output go.db`, then `meshpipe-diff --old legacy.db --new go.db`; the diff should be empty before switching traffic.
+- Guardrails: MQTT payloads > `MESHPIPE_MAX_ENVELOPE_BYTES` (default 256 KiB) drop early with metrics `messages_dropped_total`.
