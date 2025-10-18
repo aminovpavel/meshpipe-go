@@ -73,11 +73,11 @@ func TestReplaySQLite(t *testing.T) {
 	if err := targetWriter.Start(ctx); err != nil {
 		t.Fatalf("start target writer: %v", err)
 	}
-	defer func() {
+	t.Cleanup(func() {
 		if err := targetWriter.Stop(); err != nil {
 			t.Errorf("stop target writer: %v", err)
 		}
-	}()
+	})
 
 	count, err := ReplaySQLite(ctx, sourcePath, decoder, targetWriter, Options{})
 	if err != nil {
@@ -85,6 +85,12 @@ func TestReplaySQLite(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("expected to replay 1 packet, got %d", count)
+	}
+
+	// Останавливаем writer перед проверкой содержимого — Stop() дожидается,
+	// пока фоновые воркеры вычистят очередь и закроют соединение.
+	if err := targetWriter.Stop(); err != nil {
+		t.Fatalf("stop target writer: %v", err)
 	}
 
 	db, err := sql.Open("sqlite", targetPath)
