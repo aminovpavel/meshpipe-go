@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
 
-	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/eclipse/paho.golang/autopaho"
+	"github.com/eclipse/paho.golang/paho"
 )
 
 const (
@@ -79,7 +81,8 @@ type Message struct {
 // Client manages MQTT connectivity and exposes an async message stream.
 type Client struct {
 	cfg      Config
-	client   mqtt.Client
+	manager  *autopaho.ConnectionManager
+	cancel   context.CancelFunc
 	messages chan Message
 	errs     chan error
 	stopOnce sync.Once
@@ -111,63 +114,93 @@ func (c *Client) Errors() <-chan error {
 
 // Start connects to the broker and begins streaming messages until the context is cancelled.
 func (c *Client) Start(ctx context.Context) error {
-	opts := mqtt.NewClientOptions()
-	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", c.cfg.BrokerHost, c.cfg.BrokerPort))
-	opts.SetOrderMatters(false)
-	opts.SetKeepAlive(c.cfg.KeepAlive)
-	opts.SetConnectRetry(true)
-	opts.SetConnectRetryInterval(c.cfg.ReconnectGap)
-	opts.SetAutoReconnect(true)
-
-	if c.cfg.ClientID != "" {
-		opts.SetClientID(c.cfg.ClientID)
-	}
-	if c.cfg.Username != "" {
-		opts.SetUsername(c.cfg.Username)
-		opts.SetPassword(c.cfg.Password)
-	}
-
+	runCtx, cancel := context.WithCancel(ctx)
 	topic := c.cfg.SubscriptionTopic()
 
-	opts.SetDefaultPublishHandler(func(_ mqtt.Client, msg mqtt.Message) {
-		select {
-		case c.messages <- Message{
-			Topic:    msg.Topic(),
-			Payload:  append([]byte(nil), msg.Payload()...),
-			QoS:      msg.Qos(),
-			Retained: msg.Retained(),
-			Time:     time.Now(),
-		}:
-		default:
-			log.Printf("mqtt: dropping message, channel full (topic=%s)", msg.Topic())
+	brokerURL := &url.URL{
+		Scheme: "mqtt",
+		Host:   fmt.Sprintf("%s:%d", c.cfg.BrokerHost, c.cfg.BrokerPort),
+	}
+
+	clientCfg := autopaho.ClientConfig{
+		ServerUrls:                    []*url.URL{brokerURL},
+		CleanStartOnInitialConnection: true,
+		OnConnectionUp: func(m *autopaho.ConnectionManager, _ *paho.Connack) {
+			go func() {
+				subCtx, cancelSub := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancelSub()
+				_, err := m.Subscribe(subCtx, &paho.Subscribe{
+					Subscriptions: []paho.SubscribeOptions{
+						{Topic: topic, QoS: byte(0)},
+					},
+				})
+				if err != nil {
+					c.publishErr(fmt.Errorf("mqtt: subscribe failed for %s: %w", topic, err))
+				} else {
+					log.Printf("mqtt: subscribed to %s", topic)
+				}
+			}()
+		},
+		OnConnectError: func(err error) {
+			c.publishErr(fmt.Errorf("mqtt: connection error: %w", err))
+		},
+		ClientConfig: paho.ClientConfig{
+			ClientID: c.cfg.ClientID,
+			OnClientError: func(err error) {
+				c.publishErr(fmt.Errorf("mqtt: client error: %w", err))
+			},
+			OnPublishReceived: []func(paho.PublishReceived) (bool, error){
+				func(pr paho.PublishReceived) (bool, error) {
+					pub := pr.Packet
+					c.publishMessage(Message{
+						Topic:    pub.Topic,
+						Payload:  append([]byte(nil), pub.Payload...),
+						QoS:      pub.QoS,
+						Retained: pub.Retain,
+						Time:     time.Now(),
+					})
+					return true, nil
+				},
+			},
+		},
+	}
+
+	if c.cfg.KeepAlive > 0 {
+		ka := uint16(c.cfg.KeepAlive / time.Second)
+		if ka == 0 {
+			ka = 1
 		}
-	})
+		clientCfg.KeepAlive = ka
+	}
 
-	opts.OnConnect = func(m mqtt.Client) {
-		token := m.Subscribe(topic, 0, nil)
-		token.Wait()
-		if err := token.Error(); err != nil {
-			c.publishErr(fmt.Errorf("mqtt: subscribe failed for %s: %w", topic, err))
-		} else {
-			log.Printf("mqtt: subscribed to %s", topic)
+	if c.cfg.ReconnectGap > 0 {
+		delay := c.cfg.ReconnectGap
+		clientCfg.ReconnectBackoff = func(int) time.Duration { return delay }
+	}
+
+	if c.cfg.Username != "" {
+		clientCfg.ConnectUsername = c.cfg.Username
+		if c.cfg.Password != "" {
+			clientCfg.ConnectPassword = []byte(c.cfg.Password)
 		}
 	}
 
-	opts.OnConnectionLost = func(_ mqtt.Client, err error) {
-		c.publishErr(fmt.Errorf("mqtt: connection lost: %w", err))
+	manager, err := autopaho.NewConnection(runCtx, clientCfg)
+	if err != nil {
+		cancel()
+		return fmt.Errorf("mqtt: initialise connection manager: %w", err)
 	}
 
-	client := mqtt.NewClient(opts)
-	token := client.Connect()
-	token.Wait()
-	if err := token.Error(); err != nil {
-		return fmt.Errorf("mqtt: connect failed: %w", err)
+	if err := manager.AwaitConnection(runCtx); err != nil && !errors.Is(err, context.Canceled) {
+		cancel()
+		return fmt.Errorf("mqtt: await connection: %w", err)
 	}
 
-	c.client = client
+	c.manager = manager
+	c.cancel = cancel
 
 	go func() {
-		<-ctx.Done()
+		<-runCtx.Done()
 		c.stop()
 	}()
 
@@ -181,8 +214,13 @@ func (c *Client) Stop() {
 
 func (c *Client) stop() {
 	c.stopOnce.Do(func() {
-		if c.client != nil && c.client.IsConnected() {
-			c.client.Disconnect(250)
+		if c.manager != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = c.manager.Disconnect(ctx)
+			cancel()
+		}
+		if c.cancel != nil {
+			c.cancel()
 		}
 		close(c.messages)
 		close(c.errs)
@@ -193,9 +231,27 @@ func (c *Client) publishErr(err error) {
 	if err == nil {
 		return
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("mqtt: dropping error (channel closed): %v", err)
+		}
+	}()
 	select {
 	case c.errs <- err:
 	default:
 		log.Printf("mqtt: dropping error: %v", err)
+	}
+}
+
+func (c *Client) publishMessage(msg Message) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("mqtt: dropping message (channel closed) topic=%s", msg.Topic)
+		}
+	}()
+	select {
+	case c.messages <- msg:
+	default:
+		log.Printf("mqtt: dropping message, channel full (topic=%s)", msg.Topic)
 	}
 }
