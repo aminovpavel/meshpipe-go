@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
-	"github.com/aminovpavel/mw-malla-capture/internal/pipeline"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/pipeline"
 )
 
 func TestPipelineProcessesMessages(t *testing.T) {

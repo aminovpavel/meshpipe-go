@@ -3,7 +3,7 @@ package observability
 import (
 	"sync/atomic"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -35,7 +35,7 @@ type metricsConfig struct {
 	registry  prometheus.Registerer
 }
 
-// WithNamespace overrides the metric namespace (default: malla_capture).
+// WithNamespace overrides the metric namespace (default: meshpipe_capture).
 func WithNamespace(ns string) MetricsOption {
 	return func(cfg *metricsConfig) {
 		if ns != "" {
@@ -56,7 +56,7 @@ func WithRegistry(reg prometheus.Registerer) MetricsOption {
 // NewMetrics initialises and registers capture metrics.
 func NewMetrics(opts ...MetricsOption) *Metrics {
 	cfg := metricsConfig{
-		namespace: "malla_capture",
+		namespace: "meshpipe_capture",
 		registry:  prometheus.DefaultRegisterer,
 	}
 	for _, opt := range opts {

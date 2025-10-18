@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/diff"
+	"github.com/aminovpavel/meshpipe-go/internal/diff"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 		SampleLimit: *sample,
 	})
 	if err != nil {
-		log.Fatalf("malla-diff: %v", err)
+		log.Fatalf("meshpipe-diff: %v", err)
 	}
 
 	fmt.Println("=== packet_history ===")

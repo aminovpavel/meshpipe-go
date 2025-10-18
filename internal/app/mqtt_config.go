@@ -3,8 +3,8 @@ package app
 import (
 	"strings"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/config"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/config"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 )
 
 // BuildMQTTConfig translates the application configuration into an MQTT client config.

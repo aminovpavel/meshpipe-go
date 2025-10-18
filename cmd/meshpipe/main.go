@@ -9,13 +9,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/app"
-	"github.com/aminovpavel/mw-malla-capture/internal/config"
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
-	"github.com/aminovpavel/mw-malla-capture/internal/observability"
-	"github.com/aminovpavel/mw-malla-capture/internal/pipeline"
-	"github.com/aminovpavel/mw-malla-capture/internal/storage"
+	"github.com/aminovpavel/meshpipe-go/internal/app"
+	"github.com/aminovpavel/meshpipe-go/internal/config"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/observability"
+	"github.com/aminovpavel/meshpipe-go/internal/pipeline"
+	"github.com/aminovpavel/meshpipe-go/internal/storage"
 )
 
 func main() {
@@ -92,7 +92,7 @@ func main() {
 		}
 	}()
 
-	logger.Info("malla-capture starting",
+	logger.Info("meshpipe starting",
 		slog.String("broker_host", mqttCfg.BrokerHost),
 		slog.Int("broker_port", mqttCfg.BrokerPort),
 		slog.String("observability_address", cfg.ObservabilityAddress),
@@ -102,5 +102,5 @@ func main() {
 		logger.Error("pipeline stopped with error", slog.Any("error", err))
 	}
 
-	logger.Info("malla-capture stopped")
+	logger.Info("meshpipe stopped")
 }

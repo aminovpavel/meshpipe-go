@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/meshpipe-go/internal/decode"
 )
 
 type nodeEntry struct {

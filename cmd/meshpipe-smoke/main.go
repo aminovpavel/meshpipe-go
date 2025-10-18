@@ -9,18 +9,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 )
 
 func main() {
 	cfg := mqtt.Config{
-		BrokerHost:  getenv("MALLA_MQTT_BROKER_ADDRESS", "meshtastic.taubetele.com"),
-		BrokerPort:  getenvInt("MALLA_MQTT_PORT", 1883),
-		Username:    os.Getenv("MALLA_MQTT_USERNAME"),
-		Password:    os.Getenv("MALLA_MQTT_PASSWORD"),
-		TopicPrefix: getenv("MALLA_MQTT_TOPIC_PREFIX", "msh/msk"),
-		TopicSuffix: getenv("MALLA_MQTT_TOPIC_SUFFIX", "+/+/+/#"),
-		ClientID:    fmt.Sprintf("malla-smoke-%d", time.Now().UnixNano()),
+		BrokerHost:  getenvDefault("meshtastic.taubetele.com", "MESHPIPE_MQTT_BROKER_ADDRESS", "MALLA_MQTT_BROKER_ADDRESS"),
+		BrokerPort:  getenvIntDefault(1883, "MESHPIPE_MQTT_PORT", "MALLA_MQTT_PORT"),
+		Username:    getenvDefault("", "MESHPIPE_MQTT_USERNAME", "MALLA_MQTT_USERNAME"),
+		Password:    getenvDefault("", "MESHPIPE_MQTT_PASSWORD", "MALLA_MQTT_PASSWORD"),
+		TopicPrefix: getenvDefault("msh/msk", "MESHPIPE_MQTT_TOPIC_PREFIX", "MALLA_MQTT_TOPIC_PREFIX"),
+		TopicSuffix: getenvDefault("+/+/+/#", "MESHPIPE_MQTT_TOPIC_SUFFIX", "MALLA_MQTT_TOPIC_SUFFIX"),
+		ClientID:    fmt.Sprintf("meshpipe-smoke-%d", time.Now().UnixNano()),
 		KeepAlive:   30 * time.Second,
 	}
 
@@ -61,18 +61,22 @@ func main() {
 	}
 }
 
-func getenv(key, fallback string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
+func getenvDefault(fallback string, keys ...string) string {
+	for _, key := range keys {
+		if val := os.Getenv(key); val != "" {
+			return val
+		}
 	}
 	return fallback
 }
 
-func getenvInt(key string, fallback int) int {
-	if val := os.Getenv(key); val != "" {
-		var parsed int
-		if _, err := fmt.Sscanf(val, "%d", &parsed); err == nil {
-			return parsed
+func getenvIntDefault(fallback int, keys ...string) int {
+	for _, key := range keys {
+		if val := os.Getenv(key); val != "" {
+			var parsed int
+			if _, err := fmt.Sscanf(val, "%d", &parsed); err == nil {
+				return parsed
+			}
 		}
 	}
 	return fallback

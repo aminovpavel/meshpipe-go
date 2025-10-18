@@ -5,19 +5,19 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aminovpavel/mw-malla-capture/internal/config"
+	"github.com/aminovpavel/meshpipe-go/internal/config"
 )
 
 func TestDefaultConfig(t *testing.T) {
-	t.Setenv("MALLA_CONFIG_FILE", filepath.Join(t.TempDir(), "nonexistent.yaml"))
+	t.Setenv("MESHPIPE_CONFIG_FILE", filepath.Join(t.TempDir(), "nonexistent.yaml"))
 
 	cfg, err := config.New("")
 	if err != nil {
 		t.Fatalf("config.New returned error: %v", err)
 	}
 
-	if cfg.Name != "Malla" {
-		t.Fatalf("expected default name 'Malla', got %q", cfg.Name)
+	if cfg.Name != "Meshpipe" {
+		t.Fatalf("expected default name 'Meshpipe', got %q", cfg.Name)
 	}
 
 	if cfg.MQTTPort != 1883 {
@@ -71,9 +71,9 @@ func TestEnvOverrides(t *testing.T) {
 		t.Fatalf("write config yaml: %v", err)
 	}
 
-	t.Setenv("MALLA_NAME", "EnvName")
-	t.Setenv("MALLA_MQTT_PORT", "2001")
-	t.Setenv("MALLA_CAPTURE_STORE_RAW", "0")
+	t.Setenv("MESHPIPE_NAME", "EnvName")
+	t.Setenv("MESHPIPE_MQTT_PORT", "2001")
+	t.Setenv("MESHPIPE_CAPTURE_STORE_RAW", "0")
 
 	cfg, err := config.New(yamlPath)
 	if err != nil {
@@ -90,5 +90,28 @@ func TestEnvOverrides(t *testing.T) {
 
 	if cfg.CaptureStoreRaw {
 		t.Fatalf("expected CaptureStoreRaw false from env override")
+	}
+}
+
+func TestEnvOverridesLegacyPrefix(t *testing.T) {
+	yamlPath := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(yamlPath, []byte("name: FromFile\n"), 0o600); err != nil {
+		t.Fatalf("write config yaml: %v", err)
+	}
+
+	t.Setenv("MALLA_NAME", "LegacyName")
+	t.Setenv("MALLA_MQTT_PORT", "2002")
+
+	cfg, err := config.New(yamlPath)
+	if err != nil {
+		t.Fatalf("config.New returned error: %v", err)
+	}
+
+	if cfg.Name != "LegacyName" {
+		t.Fatalf("expected legacy name override, got %q", cfg.Name)
+	}
+
+	if cfg.MQTTPort != 2002 {
+		t.Fatalf("expected legacy mqtt_port override, got %d", cfg.MQTTPort)
 	}
 }
