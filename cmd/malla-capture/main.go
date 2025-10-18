@@ -30,7 +30,9 @@ func main() {
 		log.Fatalf("init mqtt client: %v", err)
 	}
 
-	decoder := decode.PassthroughDecoder{}
+	decoder := decode.NewMeshtasticDecoder(decode.MeshtasticConfig{
+		StoreRawEnvelope: cfg.CaptureStoreRaw,
+	})
 
 	writer, err := storage.NewSQLiteWriter(storage.SQLiteConfig{Path: cfg.DatabaseFile})
 	if err != nil {

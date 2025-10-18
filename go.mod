@@ -4,7 +4,9 @@ go 1.24.0
 
 require (
 	github.com/eclipse/paho.golang v0.23.0
+	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
+	modernc.org/sqlite v1.26.0
 )
 
 require (
@@ -28,7 +30,6 @@ require (
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.6.0 // indirect
 	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.26.0 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 )

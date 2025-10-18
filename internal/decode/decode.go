@@ -7,30 +7,47 @@ import (
 	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
 )
 
-// Packet represents a message that has been prepared for persistence.
+// Packet represents a Meshtastic packet ready for persistence.
 type Packet struct {
 	Topic      string
-	Payload    []byte
 	QoS        byte
 	Retained   bool
 	ReceivedAt time.Time
+
+	MessageType string
+	GatewayID   string
+	ChannelID   string
+
+	From         uint32
+	To           uint32
+	ChannelIndex uint32
+	MeshPacketID uint32
+	RxTime       uint32
+	RxSnr        float32
+	RxRssi       int32
+	HopLimit     uint32
+	HopStart     uint32
+	ViaMQTT      bool
+	WantAck      bool
+	Priority     int32
+	Delayed      int32
+	PKIEncrypted bool
+	NextHop      uint32
+	RelayNode    uint32
+	TxAfter      uint32
+	Transport    int32
+	PortNum      int32
+	PortNumName  string
+
+	Payload            []byte
+	PayloadLength      int
+	RawServiceEnvelope []byte
+
+	ProcessedSuccessfully bool
+	ParsingError          string
 }
 
-// Decoder converts raw MQTT messages into structured packets.
+// Decoder defines behaviour required to transform MQTT messages into packets.
 type Decoder interface {
 	Decode(ctx context.Context, msg mqtt.Message) (Packet, error)
-}
-
-// PassthroughDecoder returns packets without transformation.
-type PassthroughDecoder struct{}
-
-// Decode implements Decoder by copying the raw MQTT message into Packet.
-func (PassthroughDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, error) {
-	return Packet{
-		Topic:      msg.Topic,
-		Payload:    append([]byte(nil), msg.Payload...),
-		QoS:        msg.QoS,
-		Retained:   msg.Retained,
-		ReceivedAt: msg.Time,
-	}, nil
 }

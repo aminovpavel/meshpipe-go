@@ -16,20 +16,20 @@ import (
 
 // SQLiteConfig holds configuration values for the SQLite writer.
 type SQLiteConfig struct {
-    Path      string
-    QueueSize int
+	Path      string
+	QueueSize int
 }
 
 // Writer is the minimal interface required by the pipeline to persist packets.
 type Writer interface {
-    Store(ctx context.Context, pkt decode.Packet) error
+	Store(ctx context.Context, pkt decode.Packet) error
 }
 
 // StartStopper represents writers that need explicit lifecycle management.
 type StartStopper interface {
-    Writer
-    Start(ctx context.Context) error
-    Stop() error
+	Writer
+	Start(ctx context.Context) error
+	Stop() error
 }
 
 // SQLiteWriter persists packets into a SQLite database.
@@ -117,11 +117,37 @@ func (w *SQLiteWriter) loop(ctx context.Context) {
 	stmt, err := w.db.Prepare(`INSERT INTO packet_history (
         timestamp,
         topic,
+        from_node_id,
+        to_node_id,
+        portnum,
+        portnum_name,
+        gateway_id,
+        channel_id,
+        mesh_packet_id,
+        rssi,
+        snr,
+        hop_limit,
+        hop_start,
         payload_length,
         raw_payload,
+        processed_successfully,
+        via_mqtt,
+        want_ack,
+        priority,
+        delayed,
+        channel_index,
+        rx_time,
+        pki_encrypted,
+        next_hop,
+        relay_node,
+        tx_after,
+        message_type,
+        raw_service_envelope,
+        parsing_error,
+        transport,
         qos,
         retained
-    ) VALUES (?, ?, ?, ?, ?, ?)`)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		w.publishErr(fmt.Errorf("storage: prepare insert: %w", err))
 		return
@@ -148,9 +174,35 @@ func insertPacket(stmt *sql.Stmt, pkt decode.Packet) error {
 	_, err := stmt.Exec(
 		pkt.ReceivedAt.UnixMicro(),
 		pkt.Topic,
-		len(pkt.Payload),
-		pkt.Payload,
-		pkt.QoS,
+		int64(pkt.From),
+		int64(pkt.To),
+		int64(pkt.PortNum),
+		pkt.PortNumName,
+		nullString(pkt.GatewayID),
+		nullString(pkt.ChannelID),
+		int64(pkt.MeshPacketID),
+		int64(pkt.RxRssi),
+		float64(pkt.RxSnr),
+		int64(pkt.HopLimit),
+		int64(pkt.HopStart),
+		pkt.PayloadLength,
+		nullBytes(pkt.Payload),
+		boolToInt(pkt.ProcessedSuccessfully),
+		boolToInt(pkt.ViaMQTT),
+		boolToInt(pkt.WantAck),
+		int64(pkt.Priority),
+		int64(pkt.Delayed),
+		int64(pkt.ChannelIndex),
+		int64(pkt.RxTime),
+		boolToInt(pkt.PKIEncrypted),
+		int64(pkt.NextHop),
+		int64(pkt.RelayNode),
+		int64(pkt.TxAfter),
+		nullString(pkt.MessageType),
+		nullBytes(pkt.RawServiceEnvelope),
+		nullString(pkt.ParsingError),
+		int64(pkt.Transport),
+		int64(pkt.QoS),
 		boolToInt(pkt.Retained),
 	)
 	if err != nil {
@@ -185,10 +237,36 @@ func migrate(db *sql.DB) error {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp INTEGER NOT NULL,
         topic TEXT NOT NULL,
-        payload_length INTEGER NOT NULL,
-        raw_payload BLOB NOT NULL,
-        qos INTEGER NOT NULL,
-        retained INTEGER NOT NULL
+        from_node_id INTEGER,
+        to_node_id INTEGER,
+        portnum INTEGER,
+        portnum_name TEXT,
+        gateway_id TEXT,
+        channel_id TEXT,
+        mesh_packet_id INTEGER,
+        rssi INTEGER,
+        snr REAL,
+        hop_limit INTEGER,
+        hop_start INTEGER,
+        payload_length INTEGER,
+        raw_payload BLOB,
+        processed_successfully INTEGER,
+        via_mqtt INTEGER,
+        want_ack INTEGER,
+        priority INTEGER,
+        delayed INTEGER,
+        channel_index INTEGER,
+        rx_time INTEGER,
+        pki_encrypted INTEGER,
+        next_hop INTEGER,
+        relay_node INTEGER,
+        tx_after INTEGER,
+        message_type TEXT,
+        raw_service_envelope BLOB,
+        parsing_error TEXT,
+        transport INTEGER,
+        qos INTEGER,
+        retained INTEGER
     )`)
 	if err != nil {
 		return fmt.Errorf("storage: migrate packet_history: %w", err)
@@ -201,6 +279,20 @@ func boolToInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+func nullString(s string) interface{} {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
+func nullBytes(b []byte) interface{} {
+	if len(b) == 0 {
+		return nil
+	}
+	return b
 }
 
 func (w *SQLiteWriter) publishErr(err error) {
