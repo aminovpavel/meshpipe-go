@@ -93,9 +93,8 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 - GitOps: update compose manifests and GitOps repos with new image tags.
 - Release flow: promote container, monitor metrics post-deploy, document rollback steps per service runbook.
 
-### Open Questions
-- Final MQTT client choice.
-- HTTP stack for metrics (`net/http` vs `chi`).
-- SQLite driver trade-offs (modernc vs CGO) and performance tuning.
-- Need real traffic dumps for replay.
-- MQTT TLS / mTLS handling and certificate management.
+### Future Work
+- Evaluate alternative MQTT clients if new requirements appear (currently using `github.com/eclipse/paho.golang`).
+- Consider richer HTTP routing only if observability endpoints expand beyond `/metrics` and `/healthz`.
+- Explore optional TLS/mTLS support for brokers and document certificate rotation.
+- Maintain a catalogue of real traffic dumps for regression replay.
