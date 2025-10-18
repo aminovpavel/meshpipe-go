@@ -4,30 +4,103 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
+	"log/slog"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/aminovpavel/mw-malla-capture/internal/app"
+	"github.com/aminovpavel/mw-malla-capture/internal/config"
+	"github.com/aminovpavel/mw-malla-capture/internal/decode"
+	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
+	"github.com/aminovpavel/mw-malla-capture/internal/observability"
+	"github.com/aminovpavel/mw-malla-capture/internal/pipeline"
+	"github.com/aminovpavel/mw-malla-capture/internal/storage"
 )
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	fmt.Println("mw-malla-capture bootstrap placeholder")
-
-	<-ctx.Done()
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer shutdownCancel()
-
-	if err := gracefulShutdown(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
-		fmt.Fprintf(os.Stderr, "shutdown error: %v\n", err)
-		os.Exit(1)
+	cfg, err := config.New("")
+	if err != nil {
+		panic(fmt.Errorf("load config: %w", err))
 	}
-}
 
-func gracefulShutdown(ctx context.Context) error {
-	// TODO: plug in service teardown once the pipeline is wired.
-	return ctx.Err()
+	logger := observability.NewLogger(cfg.LogLevel)
+	slog.SetDefault(logger)
+
+	metrics := observability.NewMetrics()
+
+	mqttCfg := app.BuildMQTTConfig(cfg)
+	client, err := mqtt.NewClient(mqttCfg)
+	if err != nil {
+		logger.Error("failed to initialise MQTT client", slog.Any("error", err))
+		return
+	}
+
+	decoder := decode.NewMeshtasticDecoder(decode.MeshtasticConfig{
+		StoreRawEnvelope: cfg.CaptureStoreRaw,
+		DefaultKeyBase64: cfg.DefaultChannelKey,
+	})
+
+	writer, err := storage.NewSQLiteWriter(
+		storage.SQLiteConfig{
+			Path:                cfg.DatabaseFile,
+			MaintenanceInterval: time.Duration(cfg.MaintenanceInterval) * time.Minute,
+		},
+		storage.WithLogger(logger.With(slog.String("component", "storage"))),
+		storage.WithMetrics(metrics),
+	)
+	if err != nil {
+		logger.Error("failed to initialise storage writer", slog.Any("error", err))
+		return
+	}
+
+	if err := writer.Start(ctx); err != nil {
+		logger.Error("failed to start storage writer", slog.Any("error", err))
+		return
+	}
+	defer func() {
+		if err := writer.Stop(); err != nil {
+			logger.Error("storage stop error", slog.Any("error", err))
+		}
+	}()
+
+	pipe := pipeline.New(
+		client,
+		decoder,
+		writer,
+		pipeline.WithLogger(logger.With(slog.String("component", "pipeline"))),
+		pipeline.WithMetrics(metrics),
+		pipeline.WithMaxEnvelopeBytes(cfg.MaxEnvelopeBytes),
+	)
+
+	obsServer := observability.NewServer(observability.ServerConfig{
+		Address: cfg.ObservabilityAddress,
+		Logger:  logger.With(slog.String("component", "observability")),
+		Metrics: metrics,
+	})
+	go obsServer.Run(ctx)
+
+	go func() {
+		for err := range pipe.Errors() {
+			if err == nil || errors.Is(err, context.Canceled) {
+				continue
+			}
+			logger.Error("pipeline error", slog.Any("error", err))
+		}
+	}()
+
+	logger.Info("malla-capture starting",
+		slog.String("broker_host", mqttCfg.BrokerHost),
+		slog.Int("broker_port", mqttCfg.BrokerPort),
+		slog.String("observability_address", cfg.ObservabilityAddress),
+	)
+
+	if err := pipe.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+		logger.Error("pipeline stopped with error", slog.Any("error", err))
+	}
+
+	logger.Info("malla-capture stopped")
 }

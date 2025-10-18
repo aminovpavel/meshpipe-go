@@ -1,0 +1,10 @@
+*
+!cmd/
+!internal/
+!docs/
+!scripts/
+!go.mod
+!go.sum
+!buf.gen.yaml
+!Dockerfile
+!.dockerignore
