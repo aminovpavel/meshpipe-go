@@ -1,7 +1,7 @@
-# MW Malla Capture — Architecture Draft
+# Meshtastic Capture Service — Architecture Draft
 
 ## Overview
-The Go capture service ingests Meshtastic MQTT messages, applies optional decryption, decodes protobuf payloads, and writes normalized records into SQLite. The data model mirrors the legacy Python tool so the existing Malla web UI can continue reading from the same tables while we swap out the producer.
+The Go capture service ingests Meshtastic MQTT messages, applies optional decryption, decodes protobuf payloads, and writes normalized records into SQLite. Meshworks Malla deploys this build today, but the architecture is intentionally generic so any Meshtastic installation can reuse the same pipeline and schema.
 
 ```
 +-----------+       +-----------------+       +-----------------+

@@ -1,11 +1,11 @@
-# MW Malla Capture
+# Meshtastic Capture Service (Go)
 
-Go-based capture service for Meshworks Malla. The service ingests Meshtastic MQTT traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads.
+Go-based Meshtastic capture service for ingesting MQTT traffic, decrypting/decoding protobuf payloads, and persisting packet history plus node metadata to SQLite for downstream analytics and UI workloads. Meshworks Malla uses this project as its reference deployment, but the binary is suitable for any Meshtastic deployment that needs a lightweight capture pipeline.
 
 ## Goals
 - High-throughput, low-latency ingest with predictable memory usage.
 - First-class observability (structured logs, Prometheus metrics, health probes).
-- Schema parity with existing `packet_history` / `node_info` tables so the current web/UI stack keeps working.
+- Compatible schema for `packet_history` / `node_info` so existing dashboards or applications (including Meshworks Malla) continue to work.
 - Configurable via YAML + `MALLA_*` environment overrides, matching the legacy Python tool.
 - Safe rollout strategy (dual-run, diff checks, feature flag).
 
@@ -49,7 +49,7 @@ The image defines a `/data` volume for the SQLite file and exposes a healthcheck
 4. Build replay tooling to validate parity against the legacy Python capture.
 
 ## Contributing
-This repository is internal-only for now; coordinate via AGENTS directives. Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1–3 commits per branch). No direct pushes to `main` without owner approval.
+Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1–3 commits per branch). No direct pushes to `main` without owner approval.
 
 ## CI Status
 GitHub Actions (`.github/workflows/ci.yml`) runs gofmt, go test, staticcheck, and module tidy checks.
