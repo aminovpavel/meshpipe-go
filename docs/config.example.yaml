@@ -3,13 +3,13 @@
 
 name: Meshpipe
 database_file: /data/meshtastic_history.db
-mqtt_broker_address: meshtastic.taubetele.com
+mqtt_broker_address: mqtt.example.com
 mqtt_port: 1883
-mqtt_username: meshdev
-mqtt_password: large4cats
-mqtt_topic_prefix: msh/msk
+mqtt_username: ""
+mqtt_password: ""
+mqtt_topic_prefix: msh
 mqtt_topic_suffix: /+/+/+/#
-default_channel_key: 1PG7OiApB1nwvP+rz05pAQ==
+default_channel_key: ""
 log_level: INFO
 capture_store_raw: true
 wal_autocheckpoint_pages: 1000

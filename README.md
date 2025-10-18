@@ -39,7 +39,7 @@ Meshpipe can read settings from a YAML file or environment variables. A sample c
 | `MESHPIPE_MQTT_BROKER_ADDRESS` / `MESHPIPE_MQTT_PORT` | MQTT broker host/port. | `127.0.0.1` / `1883` |
 | `MESHPIPE_MQTT_USERNAME` / `MESHPIPE_MQTT_PASSWORD` | Optional credentials for the MQTT broker. | unset |
 | `MESHPIPE_MQTT_TOPIC_PREFIX` / `MESHPIPE_MQTT_TOPIC_SUFFIX` | Subscription topic pattern (`prefix` + `suffix`). | `msh` / `/+/+/+/#` |
-| `MESHPIPE_DEFAULT_CHANNEL_KEY` | Base64 encoded default channel key used for decrypt attempts. | `1PG7OiApB1nwvP+rz05pAQ==` |
+| `MESHPIPE_DEFAULT_CHANNEL_KEY` | Base64 encoded default channel key used for decrypt attempts (keep empty to rely on per-channel keys). | `""` |
 | `MESHPIPE_CAPTURE_STORE_RAW` | Whether to persist `raw_service_envelope`. | `true` |
 | `MESHPIPE_OBSERVABILITY_ADDRESS` | Address for `/metrics` and `/healthz`. | `:2112` |
 | `MESHPIPE_MAX_ENVELOPE_BYTES` | Guardrail for incoming MQTT payload size. | `262144` (256 KiB) |
