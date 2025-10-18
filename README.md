@@ -1,12 +1,12 @@
-# Meshtastic Capture Service (Go)
+# Meshpipe (Meshtastic MQTT capture in Go)
 
-Go-based Meshtastic capture service for ingesting MQTT traffic, decrypting/decoding protobuf payloads, and persisting packet history plus node metadata to SQLite for downstream analytics and UI workloads. Meshworks Malla uses this project as its reference deployment, but the binary is suitable for any Meshtastic deployment that needs a lightweight capture pipeline.
+Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. Meshworks Malla uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT→SQLite pipeline.
 
 ## Goals
 - High-throughput, low-latency ingest with predictable memory usage.
 - First-class observability (structured logs, Prometheus metrics, health probes).
 - Compatible schema for `packet_history` / `node_info` so existing dashboards or applications (including Meshworks Malla) continue to work.
-- Configurable via YAML + `MALLA_*` environment overrides, matching the legacy Python tool.
+- Configurable via YAML + `MALLA_*` environment overrides (compatible with the legacy Python capture).
 - Safe rollout strategy (dual-run, diff checks, feature flag).
 
 ## Project Layout
@@ -31,13 +31,13 @@ Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongs
 A multi-stage Dockerfile is provided and builds a CGO-enabled binary inside `debian:bookworm-slim`.
 
 ```
-docker build -t mw-malla-capture:dev .
+docker build -t meshpipe-go:dev .
 docker run --rm \
   -v $PWD/.data:/data \
   -e MALLA_CONFIG_FILE=/config/config.yaml \
   -e MALLA_DATABASE_FILE=/data/meshtastic_history.db \
   -v $PWD/config.yaml:/config/config.yaml:ro \
-  mw-malla-capture:dev
+  meshpipe-go:dev
 ```
 
 The image defines a `/data` volume for the SQLite file and exposes a healthcheck that runs `PRAGMA integrity_check`.
