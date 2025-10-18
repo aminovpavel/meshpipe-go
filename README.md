@@ -1,5 +1,8 @@
 # Meshpipe (Meshtastic MQTT capture in Go)
 
+[![CI](https://github.com/aminovpavel/meshpipe-go/actions/workflows/ci.yml/badge.svg)](https://github.com/aminovpavel/meshpipe-go/actions/workflows/ci.yml)
+[![Container](https://img.shields.io/badge/ghcr.io-aminovpavel%2Fmeshpipe--go-1f6feb?logo=github)](https://github.com/aminovpavel/meshpipe-go/pkgs/container/meshpipe-go)
+
 Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. Meshworks Malla uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT→SQLite pipeline.
 
 ## Goals
