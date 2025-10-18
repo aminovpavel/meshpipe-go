@@ -116,7 +116,13 @@ func (s *stubClient) Errors() <-chan error          { return s.errs }
 type stubDecoder struct{}
 
 func (stubDecoder) Decode(ctx context.Context, msg mqtt.Message) (decode.Packet, error) {
-	return decode.Packet{Message: msg}, nil
+	return decode.Packet{
+		Topic:      msg.Topic,
+		Payload:    append([]byte(nil), msg.Payload...),
+		QoS:        msg.QoS,
+		Retained:   msg.Retained,
+		ReceivedAt: msg.Time,
+	}, nil
 }
 
 type stubWriter struct {
