@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  meshpipe:
+    image: ghcr.io/aminovpavel/meshpipe-go:latest
+    container_name: meshpipe
+    restart: unless-stopped
+    environment:
+      # Broker configuration
+      MESHPIPE_MQTT_BROKER_ADDRESS: meshtastic.taubetele.com
+      MESHPIPE_MQTT_PORT: "1883"
+      MESHPIPE_MQTT_USERNAME: meshdev
+      MESHPIPE_MQTT_PASSWORD: large4cats
+      MESHPIPE_MQTT_TOPIC_PREFIX: msh/msk
+      MESHPIPE_MQTT_TOPIC_SUFFIX: /+/+/+/#
+      # Storage / observability
+      MESHPIPE_DATABASE_FILE: /data/meshtastic_history.db
+      MESHPIPE_OBSERVABILITY_ADDRESS: ":2112"
+    volumes:
+      - meshpipe-data:/data
+      - ./config.yaml:/config/config.yaml:ro
+    ports:
+      - "2112:2112" # /metrics and /healthz
+    command: ["meshpipe"]
+
+volumes:
+  meshpipe-data:
+    driver: local

@@ -1,0 +1,21 @@
+# Example Meshpipe configuration.
+# Adjust values to match your environment before deploying.
+
+name: Meshpipe
+database_file: /data/meshtastic_history.db
+mqtt_broker_address: meshtastic.taubetele.com
+mqtt_port: 1883
+mqtt_username: meshdev
+mqtt_password: large4cats
+mqtt_topic_prefix: msh/msk
+mqtt_topic_suffix: /+/+/+/#
+default_channel_key: 1PG7OiApB1nwvP+rz05pAQ==
+log_level: INFO
+capture_store_raw: true
+wal_autocheckpoint_pages: 1000
+journal_size_limit_bytes: 67108864
+sqlite_cache_kib: 8192
+sqlite_disable_mmap: true
+observability_address: ":2112"
+maintenance_interval_minutes: 360
+max_envelope_bytes: 262144
