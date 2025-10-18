@@ -7,8 +7,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"strings"
+	"time"
 
 	meshtasticpb "github.com/aminovpavel/mw-malla-capture/internal/decode/pb/meshtastic"
 	"github.com/aminovpavel/mw-malla-capture/internal/mqtt"
@@ -86,10 +88,10 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 	packet.Transport = int32(mesh.GetTransportMechanism())
 
 	if data := mesh.GetDecoded(); data != nil {
-		packet.PortNum = int32(data.GetPortnum())
-		packet.PortNumName = portNumName(data.GetPortnum())
-		packet.Payload = append([]byte(nil), data.GetPayload()...)
-	} else if mesh.GetEncrypted() != nil {
+		d.populateFromData(&packet, data, msg.Time)
+	} else if enc := mesh.GetEncrypted(); enc != nil {
+		packet.Payload = append([]byte(nil), enc...)
+
 		plaintext, err := d.decryptMeshPacket(mesh, packet.ChannelName)
 		if err != nil {
 			packet.ParsingError = err.Error()
@@ -104,15 +106,91 @@ func (d MeshtasticDecoder) Decode(_ context.Context, msg mqtt.Message) (Packet, 
 			return packet, nil
 		}
 
-		packet.PortNum = int32(data.GetPortnum())
-		packet.PortNumName = portNumName(data.GetPortnum())
-		packet.Payload = append([]byte(nil), data.GetPayload()...)
+		d.populateFromData(&packet, data, msg.Time)
 	}
 
 	packet.PayloadLength = len(packet.Payload)
 	packet.ProcessedSuccessfully = packet.ParsingError == ""
 
 	return packet, nil
+}
+
+func (d MeshtasticDecoder) populateFromData(packet *Packet, data *meshtasticpb.Data, receivedAt time.Time) {
+	packet.PortNum = int32(data.GetPortnum())
+	packet.PortNumName = portNumName(data.GetPortnum())
+	packet.Payload = append([]byte(nil), data.GetPayload()...)
+
+	node, err := buildNodeInfo(data, receivedAt)
+	if err != nil {
+		if packet.ParsingError == "" {
+			packet.ParsingError = err.Error()
+		} else {
+			packet.ParsingError += "; " + err.Error()
+		}
+		packet.ProcessedSuccessfully = false
+		return
+	}
+	if node != nil {
+		packet.Node = node
+	}
+}
+
+func buildNodeInfo(data *meshtasticpb.Data, receivedAt time.Time) (*NodeInfo, error) {
+	if meshtasticpb.PortNum(data.GetPortnum()) != meshtasticpb.PortNum_NODEINFO_APP {
+		return nil, nil
+	}
+
+	nodeProto := &meshtasticpb.NodeInfo{}
+	if err := proto.Unmarshal(data.GetPayload(), nodeProto); err != nil {
+		return nil, err
+	}
+
+	var (
+		userID     string
+		longName   string
+		shortName  string
+		hwModel    int32
+		role       int32
+		isLicensed bool
+		mac        []byte
+	)
+
+	if user := nodeProto.GetUser(); user != nil {
+		userID = user.GetId()
+		longName = user.GetLongName()
+		shortName = user.GetShortName()
+		hwModel = int32(user.GetHwModel())
+		role = int32(user.GetRole())
+		isLicensed = user.GetIsLicensed()
+		//lint:ignore SA1019 legacy mac field retained for compatibility
+		mac = user.GetMacaddr()
+	}
+
+	node := &NodeInfo{
+		NodeID:        nodeProto.GetNum(),
+		UserID:        userID,
+		LongName:      longName,
+		ShortName:     shortName,
+		HWModel:       hwModel,
+		Role:          role,
+		IsLicensed:    isLicensed,
+		MacAddress:    macToString(mac),
+		Snr:           nodeProto.GetSnr(),
+		LastHeard:     nodeProto.GetLastHeard(),
+		ViaMQTT:       nodeProto.GetViaMqtt(),
+		Channel:       nodeProto.GetChannel(),
+		IsFavorite:    nodeProto.GetIsFavorite(),
+		IsIgnored:     nodeProto.GetIsIgnored(),
+		IsKeyVerified: nodeProto.GetIsKeyManuallyVerified(),
+		UpdatedAt:     receivedAt,
+	}
+
+	if hops := nodeProto.GetHopsAway(); nodeProto.HopsAway != nil {
+		v := hops
+		node.HopsAway = &v
+	}
+
+	return node, nil
 }
 
 func (d MeshtasticDecoder) decryptMeshPacket(mesh *meshtasticpb.MeshPacket, channelName string) ([]byte, error) {
@@ -182,4 +260,11 @@ func portNumName(port meshtasticpb.PortNum) string {
 		return name
 	}
 	return ""
+}
+
+func macToString(mac []byte) string {
+	if len(mac) == 0 {
+		return ""
+	}
+	return strings.ToUpper(hex.EncodeToString(mac))
 }

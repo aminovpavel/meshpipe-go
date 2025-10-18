@@ -167,6 +167,11 @@ func (w *SQLiteWriter) loop(ctx context.Context) {
 			if err := insertPacket(stmt, pkt); err != nil {
 				w.publishErr(err)
 			}
+			if pkt.Node != nil {
+				if err := w.upsertNode(pkt.Node); err != nil {
+					w.publishErr(err)
+				}
+			}
 		}
 	}
 }
@@ -209,6 +214,67 @@ func insertPacket(stmt *sql.Stmt, pkt decode.Packet) error {
 	)
 	if err != nil {
 		return fmt.Errorf("storage: insert packet: %w", err)
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) upsertNode(node *decode.NodeInfo) error {
+	_, err := w.db.Exec(`INSERT INTO node_info (
+	    node_id,
+	    user_id,
+	    long_name,
+	    short_name,
+	    hw_model,
+	    role,
+	    is_licensed,
+	    mac_address,
+	    snr,
+	    last_heard,
+	    via_mqtt,
+	    channel,
+	    hops_away,
+	    is_favorite,
+	    is_ignored,
+	    is_key_verified,
+	    updated_at
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	ON CONFLICT(node_id) DO UPDATE SET
+	    user_id=excluded.user_id,
+	    long_name=excluded.long_name,
+	    short_name=excluded.short_name,
+	    hw_model=excluded.hw_model,
+	    role=excluded.role,
+	    is_licensed=excluded.is_licensed,
+	    mac_address=excluded.mac_address,
+	    snr=excluded.snr,
+	    last_heard=excluded.last_heard,
+	    via_mqtt=excluded.via_mqtt,
+	    channel=excluded.channel,
+	    hops_away=excluded.hops_away,
+	    is_favorite=excluded.is_favorite,
+	    is_ignored=excluded.is_ignored,
+	    is_key_verified=excluded.is_key_verified,
+	    updated_at=excluded.updated_at`,
+		int64(node.NodeID),
+		nullString(node.UserID),
+		nullString(node.LongName),
+		nullString(node.ShortName),
+		int64(node.HWModel),
+		int64(node.Role),
+		boolToInt(node.IsLicensed),
+		nullString(node.MacAddress),
+		float64(node.Snr),
+		int64(node.LastHeard),
+		boolToInt(node.ViaMQTT),
+		int64(node.Channel),
+		nullUint32(node.HopsAway),
+		boolToInt(node.IsFavorite),
+		boolToInt(node.IsIgnored),
+		boolToInt(node.IsKeyVerified),
+		node.UpdatedAt.UnixMicro(),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: upsert node: %w", err)
 	}
 	return nil
 }
@@ -274,6 +340,30 @@ func migrate(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("storage: migrate packet_history: %w", err)
 	}
+
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS node_info (
+	    node_id INTEGER PRIMARY KEY,
+	    user_id TEXT,
+	    long_name TEXT,
+	    short_name TEXT,
+	    hw_model INTEGER,
+	    role INTEGER,
+	    is_licensed INTEGER,
+	    mac_address TEXT,
+	    snr REAL,
+	    last_heard INTEGER,
+	    via_mqtt INTEGER,
+	    channel INTEGER,
+	    hops_away INTEGER,
+	    is_favorite INTEGER,
+	    is_ignored INTEGER,
+	    is_key_verified INTEGER,
+	    updated_at INTEGER
+	)`)
+	if err != nil {
+		return fmt.Errorf("storage: migrate node_info: %w", err)
+	}
+
 	return nil
 }
 
@@ -296,6 +386,13 @@ func nullBytes(b []byte) interface{} {
 		return nil
 	}
 	return b
+}
+
+func nullUint32(u *uint32) interface{} {
+	if u == nil {
+		return nil
+	}
+	return int64(*u)
 }
 
 func (w *SQLiteWriter) publishErr(err error) {
