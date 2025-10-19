@@ -116,3 +116,57 @@ func TestReplaySQLite(t *testing.T) {
 		t.Fatalf("expected 1 node in target db, got %d", nodeCount)
 	}
 }
+
+func buildServiceEnvelope(t *testing.T, data *meshtasticpb.Data) []byte {
+	t.Helper()
+	env := &meshtasticpb.ServiceEnvelope{
+		ChannelId: "LongFast",
+		GatewayId: "!gateway",
+		Packet: &meshtasticpb.MeshPacket{
+			Id:       123,
+			From:     0x1234,
+			To:       0xFFFF,
+			Priority: meshtasticpb.MeshPacket_DEFAULT,
+			PayloadVariant: &meshtasticpb.MeshPacket_Decoded{
+				Decoded: data,
+			},
+		},
+	}
+	payload, err := proto.Marshal(env)
+	if err != nil {
+		t.Fatalf("marshal envelope: %v", err)
+	}
+	return payload
+}
+
+func buildNodeInfoData(t *testing.T) *meshtasticpb.Data {
+	t.Helper()
+	node := &meshtasticpb.NodeInfo{
+		Num: 0x1234,
+		User: &meshtasticpb.User{
+			Id:         "!12345678",
+			LongName:   "Test Node",
+			ShortName:  "TN",
+			HwModel:    meshtasticpb.HardwareModel_HELTEC_V3,
+			Role:       meshtasticpb.Config_DeviceConfig_CLIENT,
+			IsLicensed: true,
+			Macaddr:    []byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
+		},
+		Snr:                   12.5,
+		LastHeard:             42,
+		ViaMqtt:               true,
+		Channel:               7,
+		HopsAway:              proto.Uint32(1),
+		IsFavorite:            true,
+		IsIgnored:             false,
+		IsKeyManuallyVerified: true,
+	}
+	data, err := proto.Marshal(node)
+	if err != nil {
+		t.Fatalf("marshal nodeinfo: %v", err)
+	}
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_NODEINFO_APP,
+		Payload: data,
+	}
+}
