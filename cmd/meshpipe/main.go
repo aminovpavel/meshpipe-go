@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aminovpavel/meshpipe-go/internal/api/grpcserver"
 	"github.com/aminovpavel/meshpipe-go/internal/app"
 	"github.com/aminovpavel/meshpipe-go/internal/config"
 	"github.com/aminovpavel/meshpipe-go/internal/decode"
@@ -82,6 +83,24 @@ func main() {
 		Metrics: metrics,
 	})
 	go obsServer.Run(ctx)
+
+	grpcSrv, err := grpcserver.New(grpcserver.Config{
+		Enabled:      cfg.GRPCEnabled,
+		Address:      cfg.GRPCListenAddress,
+		AuthToken:    cfg.GRPCAuthToken,
+		DatabasePath: cfg.DatabaseFile,
+		MaxPageSize:  cfg.GRPCMaxPageSize,
+	}, logger, metrics)
+	if err != nil {
+		logger.Error("failed to initialise gRPC server", slog.Any("error", err))
+	} else {
+		go func() {
+			grpcSrv.Run(ctx)
+			if closeErr := grpcSrv.Close(); closeErr != nil {
+				logger.Error("grpc server close error", slog.Any("error", closeErr))
+			}
+		}()
+	}
 
 	go func() {
 		for err := range pipe.Errors() {

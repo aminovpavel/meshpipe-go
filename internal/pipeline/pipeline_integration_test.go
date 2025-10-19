@@ -14,7 +14,7 @@ import (
 	meshtasticpb "github.com/aminovpavel/meshpipe-go/internal/decode/pb/meshtastic"
 	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 	"github.com/aminovpavel/meshpipe-go/internal/storage"
-	"google.golang.org/protobuf/proto"
+	"github.com/aminovpavel/meshpipe-go/internal/testutil"
 	_ "modernc.org/sqlite"
 )
 
@@ -36,7 +36,7 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		}
 	}()
 
-	defaultKey := base64.StdEncoding.EncodeToString(bytesRepeating(0x42, 32))
+	defaultKey := base64.StdEncoding.EncodeToString(testutil.BytesRepeating(0x42, 32))
 	decoder := decode.NewMeshtasticDecoder(decode.MeshtasticConfig{
 		StoreRawEnvelope: true,
 		DefaultKeyBase64: defaultKey,
@@ -61,61 +61,61 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("e"),
-		Payload: buildServiceEnvelope(t, buildNodeInfoData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildNodeInfoData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("map"),
-		Payload: buildServiceEnvelope(t, buildMapReportData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildMapReportData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("n"),
-		Payload: buildServiceEnvelope(t, buildNeighborInfoData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildNeighborInfoData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("t"),
-		Payload: buildServiceEnvelope(t, buildTextMessageData()),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildTextMessageData()),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("p"),
-		Payload: buildServiceEnvelope(t, buildPositionData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildPositionData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("m"),
-		Payload: buildServiceEnvelope(t, buildTelemetryData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildTelemetryData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("r"),
-		Payload: buildServiceEnvelope(t, buildRangeTestData()),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildRangeTestData()),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("sf"),
-		Payload: buildServiceEnvelope(t, buildStoreForwardData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildStoreForwardData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("tr"),
-		Payload: buildServiceEnvelope(t, buildTracerouteData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildTracerouteData(t)),
 		Time:    time.Now(),
 	}
 
 	client.messages <- mqtt.Message{
 		Topic:   makeTopic("pc"),
-		Payload: buildServiceEnvelope(t, buildPaxcounterData(t)),
+		Payload: testutil.BuildServiceEnvelope(t, testutil.BuildPaxcounterData(t)),
 		Time:    time.Now(),
 	}
 
@@ -410,236 +410,6 @@ func waitFor(t *testing.T, fn func() error) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-}
-
-func buildServiceEnvelope(t *testing.T, data *meshtasticpb.Data) []byte {
-	t.Helper()
-	env := &meshtasticpb.ServiceEnvelope{
-		ChannelId: "LongFast",
-		GatewayId: "!gateway",
-		Packet: &meshtasticpb.MeshPacket{
-			Id:       123,
-			From:     0x1234,
-			To:       0xFFFF,
-			Priority: meshtasticpb.MeshPacket_DEFAULT,
-			PayloadVariant: &meshtasticpb.MeshPacket_Decoded{
-				Decoded: data,
-			},
-		},
-	}
-	payload, err := proto.Marshal(env)
-	if err != nil {
-		t.Fatalf("marshal envelope: %v", err)
-	}
-	return payload
-}
-
-func buildNodeInfoData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	node := &meshtasticpb.NodeInfo{
-		Num: 0x1234,
-		User: &meshtasticpb.User{
-			Id:         "!12345678",
-			LongName:   "Test Node",
-			ShortName:  "TN",
-			HwModel:    meshtasticpb.HardwareModel_HELTEC_V3,
-			Role:       meshtasticpb.Config_DeviceConfig_CLIENT,
-			IsLicensed: true,
-			Macaddr:    []byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF},
-		},
-		Snr:                   12.5,
-		LastHeard:             42,
-		ViaMqtt:               true,
-		Channel:               7,
-		HopsAway:              proto.Uint32(1),
-		IsFavorite:            true,
-		IsIgnored:             false,
-		IsKeyManuallyVerified: true,
-	}
-	data, err := proto.Marshal(node)
-	if err != nil {
-		t.Fatalf("marshal nodeinfo: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_NODEINFO_APP,
-		Payload: data,
-	}
-}
-
-func buildMapReportData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	report := &meshtasticpb.MapReport{
-		LongName:        "Gateway Node",
-		ShortName:       "GW",
-		Role:            meshtasticpb.Config_DeviceConfig_ROUTER,
-		HwModel:         meshtasticpb.HardwareModel_TBEAM,
-		FirmwareVersion: "2.1.0",
-		Region:          meshtasticpb.Config_LoRaConfig_EU_868,
-		ModemPreset:     meshtasticpb.Config_LoRaConfig_SHORT_FAST,
-	}
-	payload, err := proto.Marshal(report)
-	if err != nil {
-		t.Fatalf("marshal map report: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_MAP_REPORT_APP,
-		Payload: payload,
-	}
-}
-
-func buildNeighborInfoData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	neighborInfo := &meshtasticpb.NeighborInfo{
-		NodeId:                    0x1234,
-		NodeBroadcastIntervalSecs: 60,
-		Neighbors: []*meshtasticpb.Neighbor{
-			{
-				NodeId:                    0x5678,
-				Snr:                       9.5,
-				LastRxTime:                1111,
-				NodeBroadcastIntervalSecs: 30,
-			},
-		},
-	}
-	payload, err := proto.Marshal(neighborInfo)
-	if err != nil {
-		t.Fatalf("marshal neighbor info: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_NEIGHBORINFO_APP,
-		Payload: payload,
-	}
-}
-
-func buildTextMessageData() *meshtasticpb.Data {
-	return &meshtasticpb.Data{
-		Portnum:      meshtasticpb.PortNum_TEXT_MESSAGE_APP,
-		Payload:      []byte("hello world"),
-		WantResponse: true,
-		Dest:         111,
-		Source:       222,
-		RequestId:    333,
-		ReplyId:      444,
-		Emoji:        12,
-		Bitfield:     proto.Uint32(34),
-	}
-}
-
-func buildPositionData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	pos := &meshtasticpb.Position{
-		LatitudeI:  proto.Int32(123456789),
-		LongitudeI: proto.Int32(234567890),
-		Altitude:   proto.Int32(543),
-		Time:       111,
-		Timestamp:  222,
-	}
-	payload, err := proto.Marshal(pos)
-	if err != nil {
-		t.Fatalf("marshal position: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_POSITION_APP,
-		Payload: payload,
-	}
-}
-
-func buildTelemetryData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	tele := &meshtasticpb.Telemetry{
-		Time: 333,
-		Variant: &meshtasticpb.Telemetry_EnvironmentMetrics{
-			EnvironmentMetrics: &meshtasticpb.EnvironmentMetrics{
-				Temperature: proto.Float32(21.5),
-			},
-		},
-	}
-	payload, err := proto.Marshal(tele)
-	if err != nil {
-		t.Fatalf("marshal telemetry: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_TELEMETRY_APP,
-		Payload: payload,
-	}
-}
-
-func buildRangeTestData() *meshtasticpb.Data {
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_RANGE_TEST_APP,
-		Payload: []byte("RANGE_OK"),
-	}
-}
-
-func buildStoreForwardData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	msg := &meshtasticpb.StoreAndForward{
-		Rr: meshtasticpb.StoreAndForward_ROUTER_STATS,
-		Variant: &meshtasticpb.StoreAndForward_Stats{
-			Stats: &meshtasticpb.StoreAndForward_Statistics{
-				MessagesTotal:   10,
-				MessagesSaved:   8,
-				MessagesMax:     50,
-				UpTime:          777,
-				Requests:        3,
-				RequestsHistory: 2,
-				Heartbeat:       true,
-				ReturnMax:       12,
-				ReturnWindow:    30,
-			},
-		},
-	}
-	payload, err := proto.Marshal(msg)
-	if err != nil {
-		t.Fatalf("marshal storeforward: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_STORE_FORWARD_APP,
-		Payload: payload,
-	}
-}
-
-func buildPaxcounterData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	pax := &meshtasticpb.Paxcount{
-		Wifi:   12,
-		Ble:    5,
-		Uptime: 3600,
-	}
-	payload, err := proto.Marshal(pax)
-	if err != nil {
-		t.Fatalf("marshal paxcounter: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_PAXCOUNTER_APP,
-		Payload: payload,
-	}
-}
-
-func buildTracerouteData(t *testing.T) *meshtasticpb.Data {
-	t.Helper()
-	tr := &meshtasticpb.RouteDiscovery{
-		Route:      []uint32{0x1234, 0x2000, 0x3000},
-		SnrTowards: []int32{40, 36, 32},
-		RouteBack:  []uint32{0x3000, 0x2000, 0x1234},
-		SnrBack:    []int32{28, 24, 20},
-	}
-	payload, err := proto.Marshal(tr)
-	if err != nil {
-		t.Fatalf("marshal traceroute: %v", err)
-	}
-	return &meshtasticpb.Data{
-		Portnum: meshtasticpb.PortNum_TRACEROUTE_APP,
-		Payload: payload,
-	}
-}
-
-func bytesRepeating(b byte, n int) []byte {
-	out := make([]byte, n)
-	for i := range out {
-		out[i] = b
-	}
-	return out
 }
 
 type integrationStubClient struct {
