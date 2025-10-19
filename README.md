@@ -6,7 +6,7 @@
 
 ![Meshpipe banner](assets/meshpipe-banner.jpg)
 
-Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. [Meshworks Malla](https://github.com/aminovpavel/meshworks-malla) uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT→SQLite pipeline.
+Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. [Meshworks Malla](https://github.com/aminovpavel/meshworks-malla) uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT->SQLite pipeline.
 
 ## Goals
 - High-throughput, low-latency ingest with predictable memory usage.
@@ -34,9 +34,9 @@ docs/                   # design docs, operational playbooks, migration notes
 Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongside the implementation.
 
 ## Container Images
-- `ghcr.io/aminovpavel/meshpipe-go:latest` – rolling image built from `main`.
-- `ghcr.io/aminovpavel/meshpipe-go:sha-<git-sha>` – immutable image produced for every commit on `main`.
-- `ghcr.io/aminovpavel/meshpipe-go:<tag>` – tagged release images (on git tags).
+- `ghcr.io/aminovpavel/meshpipe-go:latest` - rolling image built from `main`.
+- `ghcr.io/aminovpavel/meshpipe-go:sha-<git-sha>` - immutable image produced for every commit on `main`.
+- `ghcr.io/aminovpavel/meshpipe-go:<tag>` - tagged release images (on git tags).
 
 GitHub Actions (`.github/workflows/ci.yml`) builds, tests and publishes these images automatically.
 
@@ -91,34 +91,34 @@ When `MESHPIPE_GRPC_ENABLED` is set to `true` Meshpipe starts a read-only gRPC s
 
 Run `go test ./internal/api/grpcserver -run TestMeshpipeDataServiceEndToEnd` to execute the end-to-end gRPC smoke/regression test that seeds a temporary SQLite database and exercises dashboard, packet history, node summaries, gateway/link aggregates, traceroute paths, and module tables.
 
-### RPC → UI mapping
+### RPC -> UI mapping
 
-| RPC | Основное использование в Malla / внешних клиентах |
+| RPC | Primary Use in Malla / External Clients |
 | --- | --- |
-| `GetDashboardStats` | Главная панель, метрики за 1/6/24h, распределение по протоколам |
-| `ListPackets` / `StreamPackets` | История пакетов, поиск, фильтры, live-поток |
-| `ListNodes`, `GetNode` | Список узлов, карточка узла, статистика gateway/назначений |
-| `GetGatewayStats` | Сравнение gateway, агрегаты для вкладок статистики |
-| `ListLinks` | Граф связей, таблицы линков, longest links |
-| `ListTraceroutes` | Карта маршрутов, longest path, hop summary |
-| `ListRangeTests` | Раздел RangeTest/Telemetry (результаты проверок) |
-| `ListStoreForward` | Мониторинг StoreForward (router/client stats, history, heartbeat) |
-| `ListPaxcounter` | Вкладка Paxcounter, графики Wi-Fi/BLE, uptime |
+| `GetDashboardStats` | Main dashboard, metrics for 1/6/24h and protocol distribution |
+| `ListPackets` / `StreamPackets` | Packet history, search, filters, live stream |
+| `ListNodes`, `GetNode` | Node list, node detail view, gateway/assignment statistics |
+| `GetGatewayStats` | Gateway comparison, aggregates for analytics tabs |
+| `ListLinks` | Link graph, link tables, longest links |
+| `ListTraceroutes` | Route map, longest path, hop summary |
+| `ListRangeTests` | RangeTest / telemetry results |
+| `ListStoreForward` | StoreForward monitoring (router/client stats, history, heartbeat) |
+| `ListPaxcounter` | Paxcounter dashboard, Wi-Fi/BLE charts, uptime |
 
-Каждый метод возвращает `next_cursor`, который нужно передавать в следующем запросе для пагинации; фронт может хранить курсор как opaque строку.
+Each method returns a `next_cursor` that must be supplied in the next request to paginate; the frontend can treat the cursor as an opaque string.
 
-### Наблюдаемость gRPC
+### gRPC Observability
 
-- Meshpipe автоматически экспортирует метрики `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total` и т.д. (из `go-grpc-prometheus`). Они доступны на `/metrics` вместе с остальными показателями пайплайна.
-- При включённом `grpc_auth_token` отказ авторизации фиксируется как `grpc_code="PermissionDenied"`. Клиентам важно выставлять заголовок `Authorization: Bearer <token>`.
+- Meshpipe exports `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total`, etc. (via `go-grpc-prometheus`). They are available on `/metrics` alongside the rest of the pipeline metrics.
+- When `grpc_auth_token` is enabled, authorization failures appear as `grpc_code="PermissionDenied"`. Clients must set the `Authorization: Bearer <token>` header.
 
 ## CLI Utilities
 - `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` from an existing SQLite DB through the Go pipeline, producing a regression database for comparison.
-- `cmd/meshpipe-diff`: compares two capture SQLite databases and reports row-level differences in `packet_history` / `node_info` with sample fingerprints—useful for validating schema migrations or new decoder logic.
+- `cmd/meshpipe-diff`: compares two capture SQLite databases and reports row-level differences in `packet_history` / `node_info` with sample fingerprints-useful for validating schema migrations or new decoder logic.
 - `cmd/meshpipe-smoke`: lightweight MQTT client that attaches to your broker and prints incoming frames for quick sanity checks.
 
 ## Contributing
-Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1–3 commits per branch). No direct pushes to `main` without owner approval.
+Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1-3 commits per branch). No direct pushes to `main` without owner approval.
 
 ## CI Status
 GitHub Actions (`.github/workflows/ci.yml`) runs gofmt, go test, staticcheck, module tidy checks, and builds/pushes container images to GitHub Container Registry.

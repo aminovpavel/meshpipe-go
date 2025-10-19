@@ -87,8 +87,8 @@ func TestReplaySQLite(t *testing.T) {
 		t.Fatalf("expected to replay 1 packet, got %d", count)
 	}
 
-	// Останавливаем writer перед проверкой содержимого — Stop() дожидается,
-	// пока фоновые воркеры вычистят очередь и закроют соединение.
+	// Stop the writer before inspecting contents - Stop() waits for
+	// background workers to drain the queue and close the connection.
 	if err := targetWriter.Stop(); err != nil {
 		t.Fatalf("stop target writer: %v", err)
 	}
