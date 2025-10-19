@@ -126,110 +126,110 @@ Raw telemetry protobuf frames keyed by packet.
 
 ### `range_test_results`
 
-Хранит фреймы RangeTest (текстовые волны).
+Stores RangeTest frames (text payloads).
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
-| `text` | TEXT | Строка, переданная RangeTest. |
-| `raw_payload` | BLOB | Исходный payload.
+| `packet_id` | INTEGER PK | FK to `packet_history.id`. |
+| `text` | TEXT | Message emitted by RangeTest. |
+| `raw_payload` | BLOB | Original payload.
 
 ### `store_forward_events`
 
-Подробности StoreForward (router/client stats, history и т.п.).
+Details captured from StoreForward (router/client stats, history, etc.).
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
-| `request_response` | TEXT | Тип RR (`ROUTER_STATS`, `CLIENT_PING` и т.д.). |
-| `variant` | TEXT | Какой вариант полезной нагрузки (`stats`, `history`, `heartbeat`, `text`, `none`). |
-| `messages_total`, `messages_saved`, `messages_max` | INTEGER | Показатели из Statistics. |
-| `uptime_seconds`, `requests_total`, `requests_history` | INTEGER | Router uptime и счётчики запросов. |
-| `heartbeat_flag` | INTEGER | 1, если флаг heartbeat в Statistics. |
-| `return_max`, `return_window` | INTEGER | Параметры выдачи истории. |
-| `history_messages`, `history_window`, `history_last_request` | INTEGER | Поля из History. |
-| `heartbeat_period`, `heartbeat_secondary` | INTEGER | Поля Heartbeat. |
-| `text_payload` | BLOB | Payload текстового ответа (если есть). |
-| `raw_payload` | BLOB | Полное сообщение StoreAndForward (protobuf). |
+| `packet_id` | INTEGER PK | FK to `packet_history.id`. |
+| `request_response` | TEXT | RR type (`ROUTER_STATS`, `CLIENT_PING`, etc.). |
+| `variant` | TEXT | Payload variant (`stats`, `history`, `heartbeat`, `text`, `none`). |
+| `messages_total`, `messages_saved`, `messages_max` | INTEGER | Fields from the Statistics message. |
+| `uptime_seconds`, `requests_total`, `requests_history` | INTEGER | Router uptime and request counters. |
+| `heartbeat_flag` | INTEGER | Set to 1 when the heartbeat flag is present in Statistics. |
+| `return_max`, `return_window` | INTEGER | History replay parameters. |
+| `history_messages`, `history_window`, `history_last_request` | INTEGER | Fields from the History response. |
+| `heartbeat_period`, `heartbeat_secondary` | INTEGER | Fields from Heartbeat. |
+| `text_payload` | BLOB | Optional text response payload. |
+| `raw_payload` | BLOB | Complete StoreAndForward protobuf message. |
 
 ### `paxcounter_samples`
 
-Срезы модуля Paxcounter.
+Snapshots reported by the Paxcounter module.
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
-| `wifi`, `ble` | INTEGER | Количество MAC в видимости. |
-| `uptime_seconds` | INTEGER | Аптайм узла (сек). |
-| `raw_payload` | BLOB | Сырый protobuf Paxcount. |
+| `packet_id` | INTEGER PK | FK to `packet_history.id`. |
+| `wifi`, `ble` | INTEGER | Number of detected MAC addresses. |
+| `uptime_seconds` | INTEGER | Node uptime (seconds). |
+| `raw_payload` | BLOB | Raw Paxcounter protobuf payload. |
 
 ### `traceroute_hops`
 
-Пошаговые данные traceroute (вперёд и обратно).
+Hop-by-hop traceroute data (forward and reverse directions).
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `id` | INTEGER PK | Автоинкремент. |
-| `packet_id` | INTEGER | FK к `packet_history.id`. |
-| `gateway_id` | TEXT | Gateway-наблюдатель. |
-| `request_id` | INTEGER | RequestId из данных. |
-| `origin_node_id`, `destination_node_id` | INTEGER | Начало/конец маршрута для данного направления. |
-| `direction` | TEXT | `towards` или `back`. |
-| `hop_index` | INTEGER | Номер хопа (начиная с 0). |
-| `hop_node_id` | INTEGER | Узел на маршруте. |
-| `snr` | REAL | SNR (в дБ). |
-| `received_at` | REAL | Epoch seconds (μs). |
+| `id` | INTEGER PK | Auto-increment. |
+| `packet_id` | INTEGER | FK to `packet_history.id`. |
+| `gateway_id` | TEXT | Gateway observer. |
+| `request_id` | INTEGER | Request ID from the payload. |
+| `origin_node_id`, `destination_node_id` | INTEGER | Route endpoints for the given direction. |
+| `direction` | TEXT | `towards` or `back`. |
+| `hop_index` | INTEGER | Hop number (starting at 0). |
+| `hop_node_id` | INTEGER | Node at that hop. |
+| `snr` | REAL | SNR (dB). |
+| `received_at` | REAL | Epoch seconds (μs precision). |
 
 ### `link_history`
 
-Пер-пакетная информация о приёме для графов и аналитики.
+Per-packet reception data for graphing and analytics.
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | INTEGER PK | Auto-increment primary key. |
-| `packet_id` | INTEGER UNIQUE | FK к `packet_history.id`. |
-| `gateway_id` | TEXT | Gateway, принявший пакет. |
-| `from_node_id`, `to_node_id` | INTEGER | Отправитель/получатель. |
-| `hop_index`, `hop_limit` | INTEGER | Значения hop. |
-| `rssi`, `snr` | INTEGER/REAL | Радиометрия на gateway. |
-| `channel_id`, `channel_name` | TEXT | Канал и его имя. |
-| `received_at` | REAL | Epoch seconds с микросекундной точностью. |
+| `packet_id` | INTEGER UNIQUE | FK to `packet_history.id`. |
+| `gateway_id` | TEXT | Gateway that received the packet. |
+| `from_node_id`, `to_node_id` | INTEGER | Sender / recipient. |
+| `hop_index`, `hop_limit` | INTEGER | Hop metadata. |
+| `rssi`, `snr` | INTEGER/REAL | Radio metrics on the gateway. |
+| `channel_id`, `channel_name` | TEXT | Channel identifier and name. |
+| `received_at` | REAL | Epoch seconds with microsecond precision. |
 
 ### `gateway_node_stats`
 
-Скользящие агрегаты по каждой паре gateway/node.
+Rolling aggregates per (gateway, node) pair.
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `gateway_id`, `node_id` | TEXT/INTEGER | Композитный PK. |
-| `first_seen`, `last_seen` | REAL | Первое/последнее наблюдение. |
-| `packets_total` | INTEGER | Количество пакетов от узла. |
-| `last_rssi`, `last_snr` | INTEGER/REAL | Последняя радиометрия. |
+| `gateway_id`, `node_id` | TEXT/INTEGER | Composite PK. |
+| `first_seen`, `last_seen` | REAL | First / last observation time. |
+| `packets_total` | INTEGER | Packets received from the node. |
+| `last_rssi`, `last_snr` | INTEGER/REAL | Most recent radio metrics. |
 
 ### `neighbor_history`
 
-Хранилище NEIGHBORINFO (и, позднее, TRACEROUTE) для построения графов.
+NEIGHBORINFO (and, later, TRACEROUTE) storage for graph construction.
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | INTEGER PK | Auto-increment primary key. |
-| `packet_id` | INTEGER | FK к `packet_history.id`. |
-| `origin_node_id` | INTEGER | Узел-источник NeighborInfo. |
-| `neighbor_node_id` | INTEGER | Сообщённый сосед. |
-| `snr`, `last_rx_time` | REAL/INTEGER | Метрики из payload. |
-| `broadcast_interval` | INTEGER | Интервал вещания соседа. |
-| `gateway_id` | TEXT | Gateway, доставивший отчёт. |
-| `channel_id` | TEXT | Канал. |
-| `received_at` | REAL | Epoch seconds (μs). |
+| `packet_id` | INTEGER | FK to `packet_history.id`. |
+| `origin_node_id` | INTEGER | Node that reported the neighbor. |
+| `neighbor_node_id` | INTEGER | Reported neighbor. |
+| `snr`, `last_rx_time` | REAL/INTEGER | Metrics from the payload. |
+| `broadcast_interval` | INTEGER | Neighbor broadcast interval. |
+| `gateway_id` | TEXT | Gateway that delivered the report. |
+| `channel_id` | TEXT | Channel identifier. |
+| `received_at` | REAL | Epoch seconds (μs precision). |
 
 ### Views
 
-- `gateway_stats` — агрегаты по gateway (сумма пакетов, число уникальных нод, first/last seen, средние `rssi/snr`) поверх `gateway_node_stats`.
-- `link_aggregate` — сводка по (gateway, channel, пара узлов) с количеством пакетов и радиометрией.
-- `gateway_diversity` — агрегаты для витрин сравнения gateway (уникальные источники/получатели, средние hop и радиометрия).
-- `longest_links` — список пар узлов с максимальными наблюдаемыми hop по gateway.
-- `traceroute_longest_paths` — максимальная длина маршрутов из `traceroute_hops` по парам узлов и gateway.
-- `traceroute_hop_summary` — усреднённые и максимальные значения hop по gateway.
+- `gateway_stats` — gateway aggregates (packet totals, unique nodes, first/last seen, average `rssi/snr`) built on top of `gateway_node_stats`.
+- `link_aggregate` — aggregates per `(gateway, channel, node pair)` with packet counts and radio metrics.
+- `gateway_diversity` — gateway comparison metrics (unique sources/destinations, average hop metrics, radio metrics).
+- `longest_links` — node pairs with the highest observed hop counts per gateway.
+- `traceroute_longest_paths` — longest paths observed in `traceroute_hops` per node pair and gateway.
+- `traceroute_hop_summary` — average and maximum hop counts per gateway.
 
 ## Node cache behaviour
 

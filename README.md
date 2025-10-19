@@ -93,24 +93,24 @@ Run `go test ./internal/api/grpcserver -run TestMeshpipeDataServiceEndToEnd` to 
 
 ### RPC → UI mapping
 
-| RPC | Основное использование в Malla / внешних клиентах |
+| RPC | Primary Use in Malla / External Clients |
 | --- | --- |
-| `GetDashboardStats` | Главная панель, метрики за 1/6/24h, распределение по протоколам |
-| `ListPackets` / `StreamPackets` | История пакетов, поиск, фильтры, live-поток |
-| `ListNodes`, `GetNode` | Список узлов, карточка узла, статистика gateway/назначений |
-| `GetGatewayStats` | Сравнение gateway, агрегаты для вкладок статистики |
-| `ListLinks` | Граф связей, таблицы линков, longest links |
-| `ListTraceroutes` | Карта маршрутов, longest path, hop summary |
-| `ListRangeTests` | Раздел RangeTest/Telemetry (результаты проверок) |
-| `ListStoreForward` | Мониторинг StoreForward (router/client stats, history, heartbeat) |
-| `ListPaxcounter` | Вкладка Paxcounter, графики Wi-Fi/BLE, uptime |
+| `GetDashboardStats` | Main dashboard, metrics for 1/6/24h and protocol distribution |
+| `ListPackets` / `StreamPackets` | Packet history, search, filters, live stream |
+| `ListNodes`, `GetNode` | Node list, node detail view, gateway/assignment statistics |
+| `GetGatewayStats` | Gateway comparison, aggregates for analytics tabs |
+| `ListLinks` | Link graph, link tables, longest links |
+| `ListTraceroutes` | Route map, longest path, hop summary |
+| `ListRangeTests` | RangeTest / telemetry results |
+| `ListStoreForward` | StoreForward monitoring (router/client stats, history, heartbeat) |
+| `ListPaxcounter` | Paxcounter dashboard, Wi-Fi/BLE charts, uptime |
 
-Каждый метод возвращает `next_cursor`, который нужно передавать в следующем запросе для пагинации; фронт может хранить курсор как opaque строку.
+Each method returns a `next_cursor` that must be supplied in the next request to paginate; the frontend can treat the cursor as an opaque string.
 
-### Наблюдаемость gRPC
+### gRPC Observability
 
-- Meshpipe автоматически экспортирует метрики `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total` и т.д. (из `go-grpc-prometheus`). Они доступны на `/metrics` вместе с остальными показателями пайплайна.
-- При включённом `grpc_auth_token` отказ авторизации фиксируется как `grpc_code="PermissionDenied"`. Клиентам важно выставлять заголовок `Authorization: Bearer <token>`.
+- Meshpipe exports `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total`, etc. (via `go-grpc-prometheus`). They are available on `/metrics` alongside the rest of the pipeline metrics.
+- When `grpc_auth_token` is enabled, authorization failures appear as `grpc_code="PermissionDenied"`. Clients must set the `Authorization: Bearer <token>` header.
 
 ## CLI Utilities
 - `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` from an existing SQLite DB through the Go pipeline, producing a regression database for comparison.
