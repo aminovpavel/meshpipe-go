@@ -63,6 +63,8 @@ Meshpipe can read settings from a YAML file or environment variables. A sample c
 
 Legacy `MALLA_*` variables are still recognized for backwards compatibility.
 
+> Note: Meshtastic's built-in LoRa presets (for example, `LongFast`) do not ship with a shared default channel key. Leave `MESHPIPE_DEFAULT_CHANNEL_KEY` empty unless you manage your own encrypted channels and have a base key to provide.
+
 ## Docker Compose Example
 
 The [`examples/docker-compose.yaml`](examples/docker-compose.yaml) file shows a minimal deployment that shares the SQLite volume with the host and exposes observability endpoints:
