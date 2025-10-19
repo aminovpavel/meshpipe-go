@@ -293,6 +293,55 @@ func buildPositionInfo(payload []byte) (*PositionInfo, error) {
 		info.Altitude = &v
 	}
 
+	if precision := pos.GetPrecisionBits(); precision != 0 {
+		val := precision
+		info.PrecisionBits = &val
+	}
+	if accuracy := pos.GetGpsAccuracy(); accuracy != 0 {
+		val := accuracy
+		info.GpsAccuracy = &val
+	}
+	if pdop := pos.GetPDOP(); pdop != 0 {
+		val := pdop
+		info.PDOP = &val
+	}
+	if hdop := pos.GetHDOP(); hdop != 0 {
+		val := hdop
+		info.HDOP = &val
+	}
+	if vdop := pos.GetVDOP(); vdop != 0 {
+		val := vdop
+		info.VDOP = &val
+	}
+	if sats := pos.GetSatsInView(); sats != 0 {
+		val := sats
+		info.SatsInView = &val
+	}
+	if quality := pos.GetFixQuality(); quality != 0 {
+		val := quality
+		info.FixQuality = &val
+	}
+	if fixType := pos.GetFixType(); fixType != 0 {
+		val := fixType
+		info.FixType = &val
+	}
+	if pos.GroundSpeed != nil {
+		val := *pos.GroundSpeed
+		info.GroundSpeed = &val
+	}
+	if pos.GroundTrack != nil {
+		val := *pos.GroundTrack
+		info.GroundTrack = &val
+	}
+	if next := pos.GetNextUpdate(); next != 0 {
+		val := next
+		info.NextUpdate = &val
+	}
+	if seq := pos.GetSeqNumber(); seq != 0 {
+		val := seq
+		info.SeqNumber = &val
+	}
+
 	return info, nil
 }
 

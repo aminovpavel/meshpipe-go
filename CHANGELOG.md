@@ -6,13 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [v0.2.0] - 2025-10-19
 ### Added
-- Read-only gRPC data API (`meshpipe.v1.MeshpipeData`) with cursor pagination, streaming endpoints, and optional bearer token authentication.
-- Persistence for module payloads (range test, store-and-forward, Paxcounter, traceroute hops) with matching SQLite tables and analytics views.
-- Traceroute ingestion pipeline together with longest-path summaries and link aggregates exposed through the gRPC service.
+- Read-only gRPC data API (`meshpipe.v1.MeshpipeData`) with cursor pagination, streaming endpoints, optional bearer token auth, and an expanded RPC surface (chat windows, node/gateway analytics, traceroute hops/graph, health/version).
+- Persistence for module payloads (range test, store-and-forward, Paxcounter, traceroute hops) with matching SQLite tables, analytics views, and aggregates powering the new queries.
+- Envoy sidecar template, Docker Compose example, and smoke scripts for gRPC/gRPC-Web proxying.
 
 ### Changed
-- Hardened SQLite access for gRPC consumers (query-only connections, tuned busy timeout, additional indexes) to keep read load isolated from the ingest writer.
-- Decoder and integration tests extended to cover new payloads and node metadata updates surfaced via MapReport packets.
+- Hardened SQLite access for gRPC consumers (read-only connections, tuned busy timeout, additional indexes) plus new views for analytics aggregates.
+- Decoder and integration tests now cover module payloads, traceroute ingestion, and analytics RPCs; refreshed e2e smoke (`tmp/meshpipe-run/grpc_smoke.go`).
 
 ## [v0.1.0] - 2025-10-18
 ### Added

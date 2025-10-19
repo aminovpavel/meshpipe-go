@@ -57,6 +57,12 @@ Meshpipe ingests Meshtastic MQTT messages, applies optional decryption, decodes 
 MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> SQLite
 ```
 
+When the Envoy sidecar is enabled, Meshpipe remains the upstream gRPC server while Envoy terminates HTTP/2, gRPC, and gRPC-Web for browser clients:
+
+```
+MQTT -> Meshpipe -> Envoy proxy -> gRPC / gRPC-Web / JSON clients
+```
+
 ### 3. Decode & Decrypt
 - `internal/meshtastic`: generated protobuf bindings (buf/protoc).
 - `internal/decode`: parse ServiceEnvelope, resolve port, map to internal model.
@@ -81,6 +87,8 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 - `/metrics` served via `promhttp` on `MESHPIPE_OBSERVABILITY_ADDRESS` (default `:2112`); `/healthz` returns 200 unless recent pipeline/storage errors mark the collector unhealthy.
 - Structured logs (text or JSON) honour `MESHPIPE_LOG_LEVEL`; pipeline/storage components accept injected loggers to ensure consistent context.
 - Optional gRPC data API (`meshpipe.v1.MeshpipeData`): when `grpc_enabled` is true the process opens a dedicated listener (default `:7443`) exposing read-only endpoints backed by SQLite views (`packet_history`, `node_info`, `link_aggregate`, `gateway_stats`, `traceroute_longest_paths`, module tables). Authentication is a simple bearer token (`grpc_auth_token`) and every method uses cursor-based pagination (`next_cursor`, bounded by `grpc_max_page_size`). The service is designed for consumers such as Meshworks Malla that should no longer read the SQLite file directly.
+- Expanded RPC surface covers chat windows, node/gateway analytics, traceroute hops/graphs, node location snapshots, and a health/version probe so the SPA can rely on Meshpipe without an intermediate backend.
+- Envoy sidecar (`configs/envoy.meshpipe.yaml.tmpl` + `scripts/render-envoy-config.sh`) sits in front of the Meshpipe gRPC server when browsers or mixed clients are involved. It forwards the optional bearer token, exposes `/ready`/`/stats` on the admin interface, and can be smoke-tested via `scripts/envoy-smoke.sh`.
 
 ### 6. Testing Strategy
 - Unit: config, crypto, decoder, storage (in-memory), node cache updates.
