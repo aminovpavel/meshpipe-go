@@ -6,7 +6,7 @@
 
 ![Meshpipe banner](assets/meshpipe-banner.jpg)
 
-Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. [Meshworks Malla](https://github.com/aminovpavel/meshworks-malla) uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT→SQLite pipeline.
+Meshpipe is a Go-based capture service for Meshtastic MQTT networks. It ingests Meshtastic traffic, decrypts/decodes protobuf payloads, and persists packet history plus node metadata to SQLite for downstream analytics and UI workloads. [Meshworks Malla](https://github.com/aminovpavel/meshworks-malla) uses Meshpipe as its reference deployment, but the binary is suitable for any Meshtastic installation that needs a lightweight MQTT->SQLite pipeline.
 
 ## Goals
 - High-throughput, low-latency ingest with predictable memory usage.
@@ -34,9 +34,9 @@ docs/                   # design docs, operational playbooks, migration notes
 Additional packages (MQTT client, protobuf decode, replay tooling) evolve alongside the implementation.
 
 ## Container Images
-- `ghcr.io/aminovpavel/meshpipe-go:latest` – rolling image built from `main`.
-- `ghcr.io/aminovpavel/meshpipe-go:sha-<git-sha>` – immutable image produced for every commit on `main`.
-- `ghcr.io/aminovpavel/meshpipe-go:<tag>` – tagged release images (on git tags).
+- `ghcr.io/aminovpavel/meshpipe-go:latest` - rolling image built from `main`.
+- `ghcr.io/aminovpavel/meshpipe-go:sha-<git-sha>` - immutable image produced for every commit on `main`.
+- `ghcr.io/aminovpavel/meshpipe-go:<tag>` - tagged release images (on git tags).
 
 GitHub Actions (`.github/workflows/ci.yml`) builds, tests and publishes these images automatically.
 
@@ -47,7 +47,7 @@ Meshpipe can read settings from a YAML file or environment variables. A sample c
 | Variable | Description | Default |
 | --- | --- | --- |
 | `MESHPIPE_NAME` | Friendly service name used in logs. | `Meshpipe` |
-| `MESHPIPE_DATABASE_FILE` | Path to the the SQLite database file. | `meshtastic_history.db` (in working dir) |
+| `MESHPIPE_DATABASE_FILE` | Path to the SQLite database file. | `meshtastic_history.db` (in working dir) |
 | `MESHPIPE_MQTT_BROKER_ADDRESS` / `MESHPIPE_MQTT_PORT` | MQTT broker host/port. | `127.0.0.1` / `1883` |
 | `MESHPIPE_MQTT_USERNAME` / `MESHPIPE_MQTT_PASSWORD` | Optional credentials for the MQTT broker. | unset |
 | `MESHPIPE_MQTT_TOPIC_PREFIX` / `MESHPIPE_MQTT_TOPIC_SUFFIX` | Subscription topic pattern (`prefix` + `suffix`). | `msh` / `/+/+/+/#` |
@@ -91,7 +91,7 @@ When `MESHPIPE_GRPC_ENABLED` is set to `true` Meshpipe starts a read-only gRPC s
 
 Run `go test ./internal/api/grpcserver -run TestMeshpipeDataServiceEndToEnd` to execute the end-to-end gRPC smoke/regression test that seeds a temporary SQLite database and exercises dashboard, packet history, node summaries, gateway/link aggregates, traceroute paths, and module tables.
 
-### RPC → UI mapping
+### RPC -> UI mapping
 
 | RPC | Primary Use in Malla / External Clients |
 | --- | --- |
@@ -114,11 +114,11 @@ Each method returns a `next_cursor` that must be supplied in the next request to
 
 ## CLI Utilities
 - `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` from an existing SQLite DB through the Go pipeline, producing a regression database for comparison.
-- `cmd/meshpipe-diff`: compares two capture SQLite databases and reports row-level differences in `packet_history` / `node_info` with sample fingerprints—useful for validating schema migrations or new decoder logic.
+- `cmd/meshpipe-diff`: compares two capture SQLite databases and reports row-level differences in `packet_history` / `node_info` with sample fingerprints-useful for validating schema migrations or new decoder logic.
 - `cmd/meshpipe-smoke`: lightweight MQTT client that attaches to your broker and prints incoming frames for quick sanity checks.
 
 ## Contributing
-Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1–3 commits per branch). No direct pushes to `main` without owner approval.
+Use short-lived branches (e.g. `feat/go-config-loader`) and keep history tidy (1-3 commits per branch). No direct pushes to `main` without owner approval.
 
 ## CI Status
 GitHub Actions (`.github/workflows/ci.yml`) runs gofmt, go test, staticcheck, module tidy checks, and builds/pushes container images to GitHub Container Registry.
