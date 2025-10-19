@@ -27,6 +27,18 @@ func TestDefaultConfig(t *testing.T) {
 	if !cfg.CaptureStoreRaw {
 		t.Fatalf("expected CaptureStoreRaw default true")
 	}
+
+	if cfg.GRPCEnabled {
+		t.Fatalf("expected GRPCEnabled default false")
+	}
+
+	if cfg.GRPCListenAddress != ":7443" {
+		t.Fatalf("expected default gRPC listen address :7443, got %q", cfg.GRPCListenAddress)
+	}
+
+	if cfg.GRPCMaxPageSize != 500 {
+		t.Fatalf("expected default gRPC max page size 500, got %d", cfg.GRPCMaxPageSize)
+	}
 }
 
 func TestLoadConfigFromFile(t *testing.T) {
@@ -74,6 +86,10 @@ func TestEnvOverrides(t *testing.T) {
 	t.Setenv("MESHPIPE_NAME", "EnvName")
 	t.Setenv("MESHPIPE_MQTT_PORT", "2001")
 	t.Setenv("MESHPIPE_CAPTURE_STORE_RAW", "0")
+	t.Setenv("MESHPIPE_GRPC_ENABLED", "1")
+	t.Setenv("MESHPIPE_GRPC_LISTEN_ADDRESS", "127.0.0.1:7443")
+	t.Setenv("MESHPIPE_GRPC_AUTH_TOKEN", "secret")
+	t.Setenv("MESHPIPE_GRPC_MAX_PAGE_SIZE", "999")
 
 	cfg, err := config.New(yamlPath)
 	if err != nil {
@@ -90,6 +106,22 @@ func TestEnvOverrides(t *testing.T) {
 
 	if cfg.CaptureStoreRaw {
 		t.Fatalf("expected CaptureStoreRaw false from env override")
+	}
+
+	if !cfg.GRPCEnabled {
+		t.Fatalf("expected gRPC enabled from env override")
+	}
+
+	if cfg.GRPCListenAddress != "127.0.0.1:7443" {
+		t.Fatalf("unexpected gRPC listen address %q", cfg.GRPCListenAddress)
+	}
+
+	if cfg.GRPCAuthToken != "secret" {
+		t.Fatalf("unexpected gRPC auth token %q", cfg.GRPCAuthToken)
+	}
+
+	if cfg.GRPCMaxPageSize != 999 {
+		t.Fatalf("unexpected gRPC max page size %d", cfg.GRPCMaxPageSize)
 	}
 }
 

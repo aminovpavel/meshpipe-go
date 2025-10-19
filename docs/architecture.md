@@ -80,6 +80,7 @@ MQTT -> ingress chan -> decode workers -> decrypt -> enrich -> storage queue -> 
 - `internal/observability`: structured logging (`slog`), Prometheus metrics (ingest throughput, errors, queue depth, node upserts), and health endpoint wiring.
 - `/metrics` served via `promhttp` on `MESHPIPE_OBSERVABILITY_ADDRESS` (default `:2112`); `/healthz` returns 200 unless recent pipeline/storage errors mark the collector unhealthy.
 - Structured logs (text or JSON) honour `MESHPIPE_LOG_LEVEL`; pipeline/storage components accept injected loggers to ensure consistent context.
+- Optional gRPC data API (`meshpipe.v1.MeshpipeData`): when `grpc_enabled` is true the process opens a dedicated listener (default `:7443`) exposing read-only endpoints backed by SQLite views (`packet_history`, `node_info`, `link_aggregate`, `gateway_stats`, `traceroute_longest_paths`, module tables). Authentication is a simple bearer token (`grpc_auth_token`) and every method uses cursor-based pagination (`next_cursor`, bounded by `grpc_max_page_size`). The service is designed for consumers such as Meshworks Malla that should no longer read the SQLite file directly.
 
 ### 6. Testing Strategy
 - Unit: config, crypto, decoder, storage (in-memory), node cache updates.

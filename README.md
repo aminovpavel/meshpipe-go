@@ -56,6 +56,10 @@ Meshpipe can read settings from a YAML file or environment variables. A sample c
 | `MESHPIPE_OBSERVABILITY_ADDRESS` | Address for `/metrics` and `/healthz`. | `:2112` |
 | `MESHPIPE_MAX_ENVELOPE_BYTES` | Guardrail for incoming MQTT payload size. | `262144` (256 KiB) |
 | `MESHPIPE_MAINTENANCE_INTERVAL_MINUTES` | Interval for WAL checkpoint + optimize. | `360` |
+| `MESHPIPE_GRPC_ENABLED` | Enable the read-only gRPC data API. | `false` |
+| `MESHPIPE_GRPC_LISTEN_ADDRESS` | Listen address for the gRPC server. | `:7443` |
+| `MESHPIPE_GRPC_AUTH_TOKEN` | Optional bearer token required for gRPC requests. | unset |
+| `MESHPIPE_GRPC_MAX_PAGE_SIZE` | Maximum page size accepted by paginated gRPC methods. | `500` |
 
 Legacy `MALLA_*` variables are still recognized for backwards compatibility.
 
@@ -81,6 +85,32 @@ curl -sf http://localhost:2112/healthz
 - `/metrics` (Prometheus format) and `/healthz` are exposed on `MESHPIPE_OBSERVABILITY_ADDRESS` (default `:2112`).
 - Key metrics include `meshpipe_capture_messages_received_total`, `meshpipe_capture_decode_errors_total`, `meshpipe_capture_storage_queue_depth`, `meshpipe_capture_messages_dropped_total`.
 - Health endpoint returns HTTP 200 unless recent decode/store errors flipped the internal health flag.
+
+## gRPC Data API
+When `MESHPIPE_GRPC_ENABLED` is set to `true` Meshpipe starts a read-only gRPC server (`meshpipe.v1.MeshpipeData`) on `MESHPIPE_GRPC_LISTEN_ADDRESS` (default `:7443`). The API exposes packet history, node summaries, gateway/link aggregates, traceroute paths, and module-specific tables (RangeTest, StoreForward, Paxcounter) backed by the normalized SQLite schema. A bearer token can be required by setting `MESHPIPE_GRPC_AUTH_TOKEN`; if it is empty the server accepts unauthenticated requests. Pagination uses opaque cursors (`next_cursor`) and honours `MESHPIPE_GRPC_MAX_PAGE_SIZE` to keep responses bounded. See `proto/meshpipe/v1/data.proto` for the full service definition.
+
+Run `go test ./internal/api/grpcserver -run TestMeshpipeDataServiceEndToEnd` to execute the end-to-end gRPC smoke/regression test that seeds a temporary SQLite database and exercises dashboard, packet history, node summaries, gateway/link aggregates, traceroute paths, and module tables.
+
+### RPC → UI mapping
+
+| RPC | Основное использование в Malla / внешних клиентах |
+| --- | --- |
+| `GetDashboardStats` | Главная панель, метрики за 1/6/24h, распределение по протоколам |
+| `ListPackets` / `StreamPackets` | История пакетов, поиск, фильтры, live-поток |
+| `ListNodes`, `GetNode` | Список узлов, карточка узла, статистика gateway/назначений |
+| `GetGatewayStats` | Сравнение gateway, агрегаты для вкладок статистики |
+| `ListLinks` | Граф связей, таблицы линков, longest links |
+| `ListTraceroutes` | Карта маршрутов, longest path, hop summary |
+| `ListRangeTests` | Раздел RangeTest/Telemetry (результаты проверок) |
+| `ListStoreForward` | Мониторинг StoreForward (router/client stats, history, heartbeat) |
+| `ListPaxcounter` | Вкладка Paxcounter, графики Wi-Fi/BLE, uptime |
+
+Каждый метод возвращает `next_cursor`, который нужно передавать в следующем запросе для пагинации; фронт может хранить курсор как opaque строку.
+
+### Наблюдаемость gRPC
+
+- Meshpipe автоматически экспортирует метрики `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total` и т.д. (из `go-grpc-prometheus`). Они доступны на `/metrics` вместе с остальными показателями пайплайна.
+- При включённом `grpc_auth_token` отказ авторизации фиксируется как `grpc_code="PermissionDenied"`. Клиентам важно выставлять заголовок `Authorization: Bearer <token>`.
 
 ## CLI Utilities
 - `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` from an existing SQLite DB through the Go pipeline, producing a regression database for comparison.

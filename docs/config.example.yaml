@@ -19,3 +19,7 @@ sqlite_disable_mmap: true
 observability_address: ":2112"
 maintenance_interval_minutes: 360
 max_envelope_bytes: 262144
+grpc_enabled: false
+grpc_listen_address: ":7443"
+grpc_auth_token: ""
+grpc_max_page_size: 500

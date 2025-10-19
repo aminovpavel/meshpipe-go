@@ -33,6 +33,10 @@ type App struct {
 	ObservabilityAddress string `yaml:"observability_address"`
 	MaintenanceInterval  int    `yaml:"maintenance_interval_minutes"`
 	MaxEnvelopeBytes     int    `yaml:"max_envelope_bytes"`
+	GRPCEnabled          bool   `yaml:"grpc_enabled"`
+	GRPCListenAddress    string `yaml:"grpc_listen_address"`
+	GRPCAuthToken        string `yaml:"grpc_auth_token"`
+	GRPCMaxPageSize      int    `yaml:"grpc_max_page_size"`
 	ConfigPath           string `yaml:"-"`
 }
 
@@ -144,6 +148,14 @@ func overrideFromEnv(cfg *App) error {
 			fmt.Sscanf(value, "%d", &cfg.MaintenanceInterval)
 		case "max_envelope_bytes":
 			fmt.Sscanf(value, "%d", &cfg.MaxEnvelopeBytes)
+		case "grpc_enabled":
+			cfg.GRPCEnabled = parseBool(value, cfg.GRPCEnabled)
+		case "grpc_listen_address":
+			cfg.GRPCListenAddress = value
+		case "grpc_auth_token":
+			cfg.GRPCAuthToken = value
+		case "grpc_max_page_size":
+			fmt.Sscanf(value, "%d", &cfg.GRPCMaxPageSize)
 		}
 	}
 	return nil
@@ -178,6 +190,10 @@ func defaultConfig() *App {
 		ObservabilityAddress: ":2112",
 		MaintenanceInterval:  360,
 		MaxEnvelopeBytes:     256 * 1024,
+		GRPCEnabled:          false,
+		GRPCListenAddress:    ":7443",
+		GRPCAuthToken:        "",
+		GRPCMaxPageSize:      500,
 	}
 }
 

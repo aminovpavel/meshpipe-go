@@ -44,7 +44,7 @@ Primary log of every MQTT frame Meshpipe receives.
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | INTEGER PK | Auto-increment primary key. |
-| `timestamp` | INTEGER | Epoch seconds from the MQTT envelope. |
+| `timestamp` | REAL | Epoch seconds with microsecond precision from the MQTT envelope. |
 | `topic` | TEXT | MQTT topic that delivered the packet. |
 | `from_node_id` / `to_node_id` | INTEGER | Mesh node numeric identifiers. |
 | `portnum` / `portnum_name` | INTEGER/TEXT | Meshtastic port number and readable label. |
@@ -74,6 +74,7 @@ Cached node metadata kept in sync with incoming NODEINFO packets.
 | `user_id`, `hex_id` | TEXT | Mesh node call signs. `hex_id` is indexed. |
 | `long_name`, `short_name` | TEXT | Human-readable names. |
 | `hw_model`, `role` | INTEGER | Meshtastic enumerations. |
+| `hw_model_name`, `role_name` | TEXT | Human-friendly names derived from the enumerations. |
 | `is_licensed`, `is_favorite`, `is_ignored`, `is_key_verified` | INTEGER | Boolean flags (0/1). |
 | `mac_address` | TEXT | Optional MAC reported by firmware. |
 | `primary_channel` | TEXT | Latest primary channel (indexed). |
@@ -83,6 +84,9 @@ Cached node metadata kept in sync with incoming NODEINFO packets.
 | `channel` | INTEGER | Channel index the info was observed on. |
 | `hops_away` | INTEGER | Hop distance if provided. |
 | `first_seen`, `last_updated` | REAL | Timestamps managed by the writer cache. |
+| `region`, `region_name` | TEXT | Reported LoRa region code and human-friendly name. |
+| `firmware_version` | TEXT | Firmware version reported via MapReport. |
+| `modem_preset`, `modem_preset_name` | TEXT | LoRa modem preset code and human-friendly name. |
 
 Indexes:
 
@@ -120,6 +124,113 @@ Raw telemetry protobuf frames keyed by packet.
 | `packet_id` | INTEGER PK | FK to `packet_history.id`. |
 | `raw_payload` | BLOB | Telemetry payload for later decoding. |
 
+### `range_test_results`
+
+Хранит фреймы RangeTest (текстовые волны).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
+| `text` | TEXT | Строка, переданная RangeTest. |
+| `raw_payload` | BLOB | Исходный payload.
+
+### `store_forward_events`
+
+Подробности StoreForward (router/client stats, history и т.п.).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
+| `request_response` | TEXT | Тип RR (`ROUTER_STATS`, `CLIENT_PING` и т.д.). |
+| `variant` | TEXT | Какой вариант полезной нагрузки (`stats`, `history`, `heartbeat`, `text`, `none`). |
+| `messages_total`, `messages_saved`, `messages_max` | INTEGER | Показатели из Statistics. |
+| `uptime_seconds`, `requests_total`, `requests_history` | INTEGER | Router uptime и счётчики запросов. |
+| `heartbeat_flag` | INTEGER | 1, если флаг heartbeat в Statistics. |
+| `return_max`, `return_window` | INTEGER | Параметры выдачи истории. |
+| `history_messages`, `history_window`, `history_last_request` | INTEGER | Поля из History. |
+| `heartbeat_period`, `heartbeat_secondary` | INTEGER | Поля Heartbeat. |
+| `text_payload` | BLOB | Payload текстового ответа (если есть). |
+| `raw_payload` | BLOB | Полное сообщение StoreAndForward (protobuf). |
+
+### `paxcounter_samples`
+
+Срезы модуля Paxcounter.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
+| `wifi`, `ble` | INTEGER | Количество MAC в видимости. |
+| `uptime_seconds` | INTEGER | Аптайм узла (сек). |
+| `raw_payload` | BLOB | Сырый protobuf Paxcount. |
+
+### `traceroute_hops`
+
+Пошаговые данные traceroute (вперёд и обратно).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | INTEGER PK | Автоинкремент. |
+| `packet_id` | INTEGER | FK к `packet_history.id`. |
+| `gateway_id` | TEXT | Gateway-наблюдатель. |
+| `request_id` | INTEGER | RequestId из данных. |
+| `origin_node_id`, `destination_node_id` | INTEGER | Начало/конец маршрута для данного направления. |
+| `direction` | TEXT | `towards` или `back`. |
+| `hop_index` | INTEGER | Номер хопа (начиная с 0). |
+| `hop_node_id` | INTEGER | Узел на маршруте. |
+| `snr` | REAL | SNR (в дБ). |
+| `received_at` | REAL | Epoch seconds (μs). |
+
+### `link_history`
+
+Пер-пакетная информация о приёме для графов и аналитики.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | INTEGER PK | Auto-increment primary key. |
+| `packet_id` | INTEGER UNIQUE | FK к `packet_history.id`. |
+| `gateway_id` | TEXT | Gateway, принявший пакет. |
+| `from_node_id`, `to_node_id` | INTEGER | Отправитель/получатель. |
+| `hop_index`, `hop_limit` | INTEGER | Значения hop. |
+| `rssi`, `snr` | INTEGER/REAL | Радиометрия на gateway. |
+| `channel_id`, `channel_name` | TEXT | Канал и его имя. |
+| `received_at` | REAL | Epoch seconds с микросекундной точностью. |
+
+### `gateway_node_stats`
+
+Скользящие агрегаты по каждой паре gateway/node.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `gateway_id`, `node_id` | TEXT/INTEGER | Композитный PK. |
+| `first_seen`, `last_seen` | REAL | Первое/последнее наблюдение. |
+| `packets_total` | INTEGER | Количество пакетов от узла. |
+| `last_rssi`, `last_snr` | INTEGER/REAL | Последняя радиометрия. |
+
+### `neighbor_history`
+
+Хранилище NEIGHBORINFO (и, позднее, TRACEROUTE) для построения графов.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | INTEGER PK | Auto-increment primary key. |
+| `packet_id` | INTEGER | FK к `packet_history.id`. |
+| `origin_node_id` | INTEGER | Узел-источник NeighborInfo. |
+| `neighbor_node_id` | INTEGER | Сообщённый сосед. |
+| `snr`, `last_rx_time` | REAL/INTEGER | Метрики из payload. |
+| `broadcast_interval` | INTEGER | Интервал вещания соседа. |
+| `gateway_id` | TEXT | Gateway, доставивший отчёт. |
+| `channel_id` | TEXT | Канал. |
+| `received_at` | REAL | Epoch seconds (μs). |
+
+### Views
+
+- `gateway_stats` — агрегаты по gateway (сумма пакетов, число уникальных нод, first/last seen, средние `rssi/snr`) поверх `gateway_node_stats`.
+- `link_aggregate` — сводка по (gateway, channel, пара узлов) с количеством пакетов и радиометрией.
+- `gateway_diversity` — агрегаты для витрин сравнения gateway (уникальные источники/получатели, средние hop и радиометрия).
+- `longest_links` — список пар узлов с максимальными наблюдаемыми hop по gateway.
+- `traceroute_longest_paths` — максимальная длина маршрутов из `traceroute_hops` по парам узлов и gateway.
+- `traceroute_hop_summary` — усреднённые и максимальные значения hop по gateway.
+
 ## Node cache behaviour
 
 Meshpipe keeps an in-memory cache (`internal/storage/node_cache`) that mirrors
@@ -134,4 +245,3 @@ updates both the cache and table. The cache ensures `first_seen` is stable and
 - `cmd/meshpipe-diff` compares two SQLite files and reports differences in
   `packet_history` and `node_info` rows. This is useful after schema changes or
   decoder updates.
-
