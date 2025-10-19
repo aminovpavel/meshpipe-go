@@ -21,6 +21,8 @@ type Packet struct {
 	ChannelName string
 	GatewayID   string
 	ChannelID   string
+	RequestID   uint32
+	ReplyID     uint32
 
 	From         uint32
 	To           uint32
@@ -51,6 +53,7 @@ type Packet struct {
 	ParsingError          string
 	DecodedPortPayload    map[string]proto.Message
 	ExtraText             map[string]string
+	Traceroutes           []*meshtasticpb.RouteDiscovery
 
 	Node      *NodeInfo
 	Text      *TextMessage

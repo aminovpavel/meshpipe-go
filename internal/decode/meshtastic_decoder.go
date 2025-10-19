@@ -376,6 +376,13 @@ func (d MeshtasticDecoder) decodeAdditionalPort(packet *Packet, data *meshtastic
 		decodeProtoPayload(packet, port, payload, &meshtasticpb.Paxcount{})
 	case meshtasticpb.PortNum_STORE_FORWARD_APP:
 		decodeProtoPayload(packet, port, payload, &meshtasticpb.StoreAndForward{})
+	case meshtasticpb.PortNum_TRACEROUTE_APP:
+		decodeProtoPayload(packet, port, payload, &meshtasticpb.RouteDiscovery{})
+		if message, ok := packet.DecodedPortPayload[meshtasticpb.PortNum_TRACEROUTE_APP.String()]; ok {
+			if route, ok := message.(*meshtasticpb.RouteDiscovery); ok {
+				packet.addTraceroute(route)
+			}
+		}
 	case meshtasticpb.PortNum_NEIGHBORINFO_APP:
 		decodeProtoPayload(packet, port, payload, &meshtasticpb.NeighborInfo{})
 	case meshtasticpb.PortNum_MAP_REPORT_APP:
@@ -597,6 +604,14 @@ func (packet *Packet) addExtraText(port meshtasticpb.PortNum, text string) {
 		packet.ExtraText = make(map[string]string)
 	}
 	packet.ExtraText[port.String()] = text
+}
+
+func (packet *Packet) addTraceroute(route *meshtasticpb.RouteDiscovery) {
+	if route == nil {
+		return
+	}
+	packet.DecodedPortPayload[meshtasticpb.PortNum_TRACEROUTE_APP.String()] = route
+	packet.Traceroutes = append(packet.Traceroutes, route)
 }
 
 func firstNonEmpty(values ...string) string {

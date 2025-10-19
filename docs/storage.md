@@ -163,6 +163,23 @@ Raw telemetry protobuf frames keyed by packet.
 | `uptime_seconds` | INTEGER | Аптайм узла (сек). |
 | `raw_payload` | BLOB | Сырый protobuf Paxcount. |
 
+### `traceroute_hops`
+
+Пошаговые данные traceroute (вперёд и обратно).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | INTEGER PK | Автоинкремент. |
+| `packet_id` | INTEGER | FK к `packet_history.id`. |
+| `gateway_id` | TEXT | Gateway-наблюдатель. |
+| `request_id` | INTEGER | RequestId из данных. |
+| `origin_node_id`, `destination_node_id` | INTEGER | Начало/конец маршрута для данного направления. |
+| `direction` | TEXT | `towards` или `back`. |
+| `hop_index` | INTEGER | Номер хопа (начиная с 0). |
+| `hop_node_id` | INTEGER | Узел на маршруте. |
+| `snr` | REAL | SNR (в дБ). |
+| `received_at` | REAL | Epoch seconds (μs). |
+
 ### `link_history`
 
 Пер-пакетная информация о приёме для графов и аналитики.
@@ -211,6 +228,8 @@ Raw telemetry protobuf frames keyed by packet.
 - `link_aggregate` — сводка по (gateway, channel, пара узлов) с количеством пакетов и радиометрией.
 - `gateway_diversity` — агрегаты для витрин сравнения gateway (уникальные источники/получатели, средние hop и радиометрия).
 - `longest_links` — список пар узлов с максимальными наблюдаемыми hop по gateway.
+- `traceroute_longest_paths` — максимальная длина маршрутов из `traceroute_hops` по парам узлов и gateway.
+- `traceroute_hop_summary` — усреднённые и максимальные значения hop по gateway.
 
 ## Node cache behaviour
 

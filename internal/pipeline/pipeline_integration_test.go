@@ -108,6 +108,12 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 	}
 
 	client.messages <- mqtt.Message{
+		Topic:   makeTopic("tr"),
+		Payload: buildServiceEnvelope(t, buildTracerouteData(t)),
+		Time:    time.Now(),
+	}
+
+	client.messages <- mqtt.Message{
 		Topic:   makeTopic("pc"),
 		Payload: buildServiceEnvelope(t, buildPaxcounterData(t)),
 		Time:    time.Now(),
@@ -123,8 +129,8 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		if err := db.QueryRow(`SELECT COUNT(*) FROM packet_history`).Scan(&count); err != nil {
 			return err
 		}
-		if count < 9 {
-			return fmt.Errorf("expected packet_history >= 9, got %d", count)
+		if count < 10 {
+			return fmt.Errorf("expected packet_history >= 10, got %d", count)
 		}
 		if err := db.QueryRow(`SELECT COUNT(*) FROM text_messages`).Scan(&count); err != nil {
 			return err
@@ -291,6 +297,24 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 	}
 	if originID != 0x1234 || neighborID != 0x5678 {
 		t.Fatalf("unexpected neighbor entry origin=%d neighbor=%d", originID, neighborID)
+	}
+
+	hopCountRow := db.QueryRow(`SELECT COUNT(*) FROM traceroute_hops WHERE direction = 'towards'`)
+	var hopCount int
+	if err := hopCountRow.Scan(&hopCount); err != nil {
+		t.Fatalf("scan traceroute_hops count: %v", err)
+	}
+	if hopCount != 3 {
+		t.Fatalf("expected 3 traceroute hops, got %d", hopCount)
+	}
+
+	longestRow := db.QueryRow(`SELECT max_hops FROM traceroute_longest_paths LIMIT 1`)
+	var longestHops int
+	if err := longestRow.Scan(&longestHops); err != nil {
+		t.Fatalf("scan traceroute_longest_paths: %v", err)
+	}
+	if longestHops != 3 {
+		t.Fatalf("expected longest traceroute hops = 3, got %d", longestHops)
 	}
 
 	rangeRow := db.QueryRow(`SELECT text FROM range_test_results LIMIT 1`)
@@ -588,6 +612,24 @@ func buildPaxcounterData(t *testing.T) *meshtasticpb.Data {
 	}
 	return &meshtasticpb.Data{
 		Portnum: meshtasticpb.PortNum_PAXCOUNTER_APP,
+		Payload: payload,
+	}
+}
+
+func buildTracerouteData(t *testing.T) *meshtasticpb.Data {
+	t.Helper()
+	tr := &meshtasticpb.RouteDiscovery{
+		Route:      []uint32{0x1234, 0x2000, 0x3000},
+		SnrTowards: []int32{40, 36, 32},
+		RouteBack:  []uint32{0x3000, 0x2000, 0x1234},
+		SnrBack:    []int32{28, 24, 20},
+	}
+	payload, err := proto.Marshal(tr)
+	if err != nil {
+		t.Fatalf("marshal traceroute: %v", err)
+	}
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_TRACEROUTE_APP,
 		Payload: payload,
 	}
 }

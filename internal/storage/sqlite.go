@@ -402,6 +402,26 @@ func (w *SQLiteWriter) loop(ctx context.Context) {
 				w.publishErr(err)
 			}
 
+			if err := w.storeTraceroute(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
+			if err := w.storeRangeTest(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
+			if err := w.storeStoreForward(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
+			if err := w.storePaxcounter(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
 			if err := w.storeLinkHistory(packetID, pkt); err != nil {
 				w.metrics.IncStoreErrors()
 				w.publishErr(err)
@@ -693,6 +713,76 @@ func (w *SQLiteWriter) storePaxcounter(packetID int64, pkt decode.Packet) error 
 	if err != nil {
 		return fmt.Errorf("storage: insert paxcounter: %w", err)
 	}
+	return nil
+}
+
+func (w *SQLiteWriter) storeTraceroute(packetID int64, pkt decode.Packet) error {
+	if len(pkt.Traceroutes) == 0 {
+		return nil
+	}
+	gatewayID := strings.TrimSpace(pkt.GatewayID)
+	receivedAt := timeToSeconds(pkt.ReceivedAt)
+	requestID := int64(pkt.RequestID)
+	originID := int64(pkt.From)
+	destID := int64(pkt.To)
+
+	insertHop := func(direction string, hopIndex int, hopNode uint32, snrVal interface{}, origin, dest int64) error {
+		_, err := w.db.Exec(`INSERT INTO traceroute_hops (
+	            packet_id,
+	            gateway_id,
+	            request_id,
+	            origin_node_id,
+	            destination_node_id,
+	            direction,
+	            hop_index,
+	            hop_node_id,
+	            snr,
+	            received_at
+	        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			packetID,
+			nullString(gatewayID),
+			requestID,
+			origin,
+			dest,
+			direction,
+			hopIndex,
+			int64(hopNode),
+			snrVal,
+			receivedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("storage: insert traceroute hop: %w", err)
+		}
+		return nil
+	}
+
+	for _, tr := range pkt.Traceroutes {
+		if tr == nil {
+			continue
+		}
+		route := tr.GetRoute()
+		snrTowards := tr.GetSnrTowards()
+		for idx, hop := range route {
+			if hop == 0 {
+				continue
+			}
+			if err := insertHop("towards", idx, hop, nullFloat64(snrPointer(snrTowards, idx)), originID, destID); err != nil {
+				return err
+			}
+		}
+
+		routeBack := tr.GetRouteBack()
+		snrBack := tr.GetSnrBack()
+		for idx, hop := range routeBack {
+			if hop == 0 {
+				continue
+			}
+			if err := insertHop("back", idx, hop, nullFloat64(snrPointer(snrBack, idx)), destID, originID); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1093,6 +1183,10 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
+	if err := createTracerouteHopsTable(db); err != nil {
+		return err
+	}
+
 	if err := createLinkHistoryTable(db); err != nil {
 		return err
 	}
@@ -1118,6 +1212,10 @@ func migrate(db *sql.DB) error {
 	}
 
 	if err := createLongestLinksView(db); err != nil {
+		return err
+	}
+
+	if err := createTracerouteViews(db); err != nil {
 		return err
 	}
 
@@ -1262,6 +1360,35 @@ func createPaxcounterSamplesTable(db *sql.DB) error {
 	        FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
 	    )`); err != nil {
 		return fmt.Errorf("storage: create paxcounter_samples: %w", err)
+	}
+	return nil
+}
+
+func createTracerouteHopsTable(db *sql.DB) error {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS traceroute_hops (
+	        id INTEGER PRIMARY KEY AUTOINCREMENT,
+	        packet_id INTEGER,
+	        gateway_id TEXT,
+	        request_id INTEGER,
+	        origin_node_id INTEGER,
+	        destination_node_id INTEGER,
+	        direction TEXT,
+	        hop_index INTEGER,
+	        hop_node_id INTEGER,
+	        snr REAL,
+	        received_at REAL,
+	        FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	    )`); err != nil {
+		return fmt.Errorf("storage: create traceroute_hops: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_traceroute_packet ON traceroute_hops(packet_id)`); err != nil {
+		return fmt.Errorf("storage: index traceroute_hops packet: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_traceroute_origin_dest ON traceroute_hops(origin_node_id, destination_node_id)`); err != nil {
+		return fmt.Errorf("storage: index traceroute_hops origin/dest: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_traceroute_gateway ON traceroute_hops(gateway_id)`); err != nil {
+		return fmt.Errorf("storage: index traceroute_hops gateway: %w", err)
 	}
 	return nil
 }
@@ -1422,6 +1549,44 @@ func createLongestLinksView(db *sql.DB) error {
 	        FROM link_history
 	        GROUP BY gateway_id, from_node_id, to_node_id`); err != nil {
 		return fmt.Errorf("storage: create longest_links view: %w", err)
+	}
+	return nil
+}
+
+func createTracerouteViews(db *sql.DB) error {
+	if _, err := db.Exec(`DROP VIEW IF EXISTS traceroute_longest_paths`); err != nil {
+		return fmt.Errorf("storage: drop traceroute_longest_paths: %w", err)
+	}
+	if _, err := db.Exec(`CREATE VIEW traceroute_longest_paths AS
+	        SELECT
+	            origin_node_id,
+	            destination_node_id,
+	            gateway_id,
+	            MAX(hop_index + 1) AS max_hops,
+	            COUNT(DISTINCT packet_id) AS observations,
+	            MIN(received_at) AS first_seen,
+	            MAX(received_at) AS last_seen
+	        FROM traceroute_hops
+	        WHERE direction = 'towards'
+	        GROUP BY origin_node_id, destination_node_id, gateway_id`); err != nil {
+		return fmt.Errorf("storage: create traceroute_longest_paths view: %w", err)
+	}
+	if _, err := db.Exec(`DROP VIEW IF EXISTS traceroute_hop_summary`); err != nil {
+		return fmt.Errorf("storage: drop traceroute_hop_summary: %w", err)
+	}
+	if _, err := db.Exec(`CREATE VIEW traceroute_hop_summary AS
+	        SELECT
+	            gateway_id,
+	            COUNT(*) AS hop_records,
+	            COUNT(DISTINCT packet_id) AS packets_total,
+	            AVG(hop_index + 1) AS avg_hops,
+	            MAX(hop_index + 1) AS max_hops,
+	            MIN(received_at) AS first_seen,
+	            MAX(received_at) AS last_seen
+	        FROM traceroute_hops
+	        WHERE direction = 'towards'
+	        GROUP BY gateway_id`); err != nil {
+		return fmt.Errorf("storage: create traceroute_hop_summary view: %w", err)
 	}
 	return nil
 }
@@ -1681,6 +1846,14 @@ func boolToInt(b bool) int {
 
 func uint32Ptr(v uint32) *uint32 {
 	return &v
+}
+
+func snrPointer(values []int32, idx int) *float64 {
+	if idx < 0 || idx >= len(values) {
+		return nil
+	}
+	val := float64(values[idx]) / 4.0
+	return &val
 }
 
 func statsSafe(stats *meshtasticpb.StoreAndForward_Statistics, getter func(*meshtasticpb.StoreAndForward_Statistics) uint32) *uint32 {
