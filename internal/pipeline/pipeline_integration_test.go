@@ -95,6 +95,24 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		Time:    time.Now(),
 	}
 
+	client.messages <- mqtt.Message{
+		Topic:   makeTopic("r"),
+		Payload: buildServiceEnvelope(t, buildRangeTestData()),
+		Time:    time.Now(),
+	}
+
+	client.messages <- mqtt.Message{
+		Topic:   makeTopic("sf"),
+		Payload: buildServiceEnvelope(t, buildStoreForwardData(t)),
+		Time:    time.Now(),
+	}
+
+	client.messages <- mqtt.Message{
+		Topic:   makeTopic("pc"),
+		Payload: buildServiceEnvelope(t, buildPaxcounterData(t)),
+		Time:    time.Now(),
+	}
+
 	waitFor(t, func() error {
 		db, err := sql.Open("sqlite", dbPath)
 		if err != nil {
@@ -105,8 +123,8 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		if err := db.QueryRow(`SELECT COUNT(*) FROM packet_history`).Scan(&count); err != nil {
 			return err
 		}
-		if count < 6 {
-			return fmt.Errorf("expected packet_history >= 6, got %d", count)
+		if count < 9 {
+			return fmt.Errorf("expected packet_history >= 9, got %d", count)
 		}
 		if err := db.QueryRow(`SELECT COUNT(*) FROM text_messages`).Scan(&count); err != nil {
 			return err
@@ -131,6 +149,24 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		}
 		if count == 0 {
 			return fmt.Errorf("node not stored yet")
+		}
+		if err := db.QueryRow(`SELECT COUNT(*) FROM range_test_results`).Scan(&count); err != nil {
+			return err
+		}
+		if count == 0 {
+			return fmt.Errorf("range test not stored yet")
+		}
+		if err := db.QueryRow(`SELECT COUNT(*) FROM store_forward_events`).Scan(&count); err != nil {
+			return err
+		}
+		if count == 0 {
+			return fmt.Errorf("store-forward not stored yet")
+		}
+		if err := db.QueryRow(`SELECT COUNT(*) FROM paxcounter_samples`).Scan(&count); err != nil {
+			return err
+		}
+		if count == 0 {
+			return fmt.Errorf("paxcounter not stored yet")
 		}
 		return nil
 	})
@@ -255,6 +291,43 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 	}
 	if originID != 0x1234 || neighborID != 0x5678 {
 		t.Fatalf("unexpected neighbor entry origin=%d neighbor=%d", originID, neighborID)
+	}
+
+	rangeRow := db.QueryRow(`SELECT text FROM range_test_results LIMIT 1`)
+	var rangeText string
+	if err := rangeRow.Scan(&rangeText); err != nil {
+		t.Fatalf("scan range_test_results: %v", err)
+	}
+	if rangeText != "RANGE_OK" {
+		t.Fatalf("unexpected range test text: %s", rangeText)
+	}
+
+	storeRow := db.QueryRow(`SELECT request_response, variant, messages_total, heartbeat_flag FROM store_forward_events LIMIT 1`)
+	var rr, variant string
+	var messagesTotal, heartbeatFlag int64
+	if err := storeRow.Scan(&rr, &variant, &messagesTotal, &heartbeatFlag); err != nil {
+		t.Fatalf("scan store_forward_events: %v", err)
+	}
+	if rr != meshtasticpb.StoreAndForward_ROUTER_STATS.String() {
+		t.Fatalf("unexpected store forward rr: %s", rr)
+	}
+	if variant != "stats" {
+		t.Fatalf("unexpected store forward variant: %s", variant)
+	}
+	if messagesTotal != 10 {
+		t.Fatalf("unexpected store forward messages total: %d", messagesTotal)
+	}
+	if heartbeatFlag != 1 {
+		t.Fatalf("expected heartbeat flag to be 1, got %d", heartbeatFlag)
+	}
+
+	paxRow := db.QueryRow(`SELECT wifi, ble, uptime_seconds FROM paxcounter_samples LIMIT 1`)
+	var wifi, ble, uptime int64
+	if err := paxRow.Scan(&wifi, &ble, &uptime); err != nil {
+		t.Fatalf("scan paxcounter_samples: %v", err)
+	}
+	if wifi != 12 || ble != 5 || uptime != 3600 {
+		t.Fatalf("unexpected paxcounter sample wifi=%d ble=%d uptime=%d", wifi, ble, uptime)
 	}
 
 	textRow := db.QueryRow(`SELECT text, want_response, compressed FROM text_messages LIMIT 1`)
@@ -463,6 +536,58 @@ func buildTelemetryData(t *testing.T) *meshtasticpb.Data {
 	}
 	return &meshtasticpb.Data{
 		Portnum: meshtasticpb.PortNum_TELEMETRY_APP,
+		Payload: payload,
+	}
+}
+
+func buildRangeTestData() *meshtasticpb.Data {
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_RANGE_TEST_APP,
+		Payload: []byte("RANGE_OK"),
+	}
+}
+
+func buildStoreForwardData(t *testing.T) *meshtasticpb.Data {
+	t.Helper()
+	msg := &meshtasticpb.StoreAndForward{
+		Rr: meshtasticpb.StoreAndForward_ROUTER_STATS,
+		Variant: &meshtasticpb.StoreAndForward_Stats{
+			Stats: &meshtasticpb.StoreAndForward_Statistics{
+				MessagesTotal:   10,
+				MessagesSaved:   8,
+				MessagesMax:     50,
+				UpTime:          777,
+				Requests:        3,
+				RequestsHistory: 2,
+				Heartbeat:       true,
+				ReturnMax:       12,
+				ReturnWindow:    30,
+			},
+		},
+	}
+	payload, err := proto.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal storeforward: %v", err)
+	}
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_STORE_FORWARD_APP,
+		Payload: payload,
+	}
+}
+
+func buildPaxcounterData(t *testing.T) *meshtasticpb.Data {
+	t.Helper()
+	pax := &meshtasticpb.Paxcount{
+		Wifi:   12,
+		Ble:    5,
+		Uptime: 3600,
+	}
+	payload, err := proto.Marshal(pax)
+	if err != nil {
+		t.Fatalf("marshal paxcounter: %v", err)
+	}
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_PAXCOUNTER_APP,
 		Payload: payload,
 	}
 }

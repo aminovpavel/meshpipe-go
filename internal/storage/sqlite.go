@@ -17,6 +17,7 @@ import (
 	"github.com/aminovpavel/meshpipe-go/internal/decode"
 	meshtasticpb "github.com/aminovpavel/meshpipe-go/internal/decode/pb/meshtastic"
 	"github.com/aminovpavel/meshpipe-go/internal/observability"
+	"google.golang.org/protobuf/proto"
 )
 
 // SQLiteConfig holds configuration values for the SQLite writer.
@@ -386,6 +387,21 @@ func (w *SQLiteWriter) loop(ctx context.Context) {
 				}
 			}
 
+			if err := w.storeRangeTest(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
+			if err := w.storeStoreForward(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
+			if err := w.storePaxcounter(packetID, pkt); err != nil {
+				w.metrics.IncStoreErrors()
+				w.publishErr(err)
+			}
+
 			if err := w.storeLinkHistory(packetID, pkt); err != nil {
 				w.metrics.IncStoreErrors()
 				w.publishErr(err)
@@ -514,6 +530,168 @@ func (w *SQLiteWriter) storeTelemetry(packetID int64, tele *decode.TelemetryInfo
 	)
 	if err != nil {
 		return fmt.Errorf("storage: insert telemetry: %w", err)
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) storeRangeTest(packetID int64, pkt decode.Packet) error {
+	if len(pkt.ExtraText) == 0 {
+		return nil
+	}
+	text, ok := pkt.ExtraText[meshtasticpb.PortNum_RANGE_TEST_APP.String()]
+	if !ok || strings.TrimSpace(text) == "" {
+		return nil
+	}
+	_, err := w.db.Exec(`INSERT INTO range_test_results (
+	        packet_id,
+	        text,
+	        raw_payload
+	    ) VALUES (?, ?, ?)
+	    ON CONFLICT(packet_id) DO UPDATE SET
+	        text=excluded.text,
+	        raw_payload=excluded.raw_payload`,
+		packetID,
+		text,
+		nullBytes(pkt.Payload),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: insert range_test: %w", err)
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) storeStoreForward(packetID int64, pkt decode.Packet) error {
+	if len(pkt.DecodedPortPayload) == 0 {
+		return nil
+	}
+	msg, ok := pkt.DecodedPortPayload[meshtasticpb.PortNum_STORE_FORWARD_APP.String()]
+	if !ok || msg == nil {
+		return nil
+	}
+	store, ok := msg.(*meshtasticpb.StoreAndForward)
+	if !ok || store == nil {
+		return nil
+	}
+	variant := "none"
+	stats := store.GetStats()
+	history := store.GetHistory()
+	heartbeat := store.GetHeartbeat()
+	textPayload := store.GetText()
+	if stats != nil {
+		variant = "stats"
+	} else if history != nil {
+		variant = "history"
+	} else if heartbeat != nil {
+		variant = "heartbeat"
+	} else if len(textPayload) > 0 {
+		variant = "text"
+	}
+	raw, err := proto.Marshal(store)
+	if err != nil {
+		return fmt.Errorf("storage: marshal store forward: %w", err)
+	}
+	_, err = w.db.Exec(`INSERT INTO store_forward_events (
+	        packet_id,
+	        request_response,
+	        variant,
+	        messages_total,
+	        messages_saved,
+	        messages_max,
+	        uptime_seconds,
+	        requests_total,
+	        requests_history,
+	        heartbeat_flag,
+	        return_max,
+	        return_window,
+	        history_messages,
+	        history_window,
+	        history_last_request,
+	        heartbeat_period,
+	        heartbeat_secondary,
+	        text_payload,
+	        raw_payload
+	    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	    ON CONFLICT(packet_id) DO UPDATE SET
+	        request_response=excluded.request_response,
+	        variant=excluded.variant,
+	        messages_total=excluded.messages_total,
+	        messages_saved=excluded.messages_saved,
+	        messages_max=excluded.messages_max,
+	        uptime_seconds=excluded.uptime_seconds,
+	        requests_total=excluded.requests_total,
+	        requests_history=excluded.requests_history,
+	        heartbeat_flag=excluded.heartbeat_flag,
+	        return_max=excluded.return_max,
+	        return_window=excluded.return_window,
+	        history_messages=excluded.history_messages,
+	        history_window=excluded.history_window,
+	        history_last_request=excluded.history_last_request,
+	        heartbeat_period=excluded.heartbeat_period,
+	        heartbeat_secondary=excluded.heartbeat_secondary,
+	        text_payload=excluded.text_payload,
+	        raw_payload=excluded.raw_payload`,
+		packetID,
+		store.GetRr().String(),
+		variant,
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetMessagesTotal() })),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetMessagesSaved() })),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetMessagesMax() })),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetUpTime() })),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetRequests() })),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetRequestsHistory() })),
+		boolToInt(stats != nil && stats.GetHeartbeat()),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetReturnMax() })),
+		nullUint32(statsSafe(stats, func(s *meshtasticpb.StoreAndForward_Statistics) uint32 { return s.GetReturnWindow() })),
+		nullUint32(historySafe(history, func(h *meshtasticpb.StoreAndForward_History) uint32 { return h.GetHistoryMessages() })),
+		nullUint32(historySafe(history, func(h *meshtasticpb.StoreAndForward_History) uint32 { return h.GetWindow() })),
+		nullUint32(historySafe(history, func(h *meshtasticpb.StoreAndForward_History) uint32 { return h.GetLastRequest() })),
+		nullUint32(heartbeatSafe(heartbeat, func(h *meshtasticpb.StoreAndForward_Heartbeat) uint32 { return h.GetPeriod() })),
+		nullUint32(heartbeatSafe(heartbeat, func(h *meshtasticpb.StoreAndForward_Heartbeat) uint32 { return h.GetSecondary() })),
+		nullBytes(textPayload),
+		nullBytes(raw),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: insert store_forward: %w", err)
+	}
+	return nil
+}
+
+func (w *SQLiteWriter) storePaxcounter(packetID int64, pkt decode.Packet) error {
+	if len(pkt.DecodedPortPayload) == 0 {
+		return nil
+	}
+	msg, ok := pkt.DecodedPortPayload[meshtasticpb.PortNum_PAXCOUNTER_APP.String()]
+	if !ok || msg == nil {
+		return nil
+	}
+	pax, ok := msg.(*meshtasticpb.Paxcount)
+	if !ok || pax == nil {
+		return nil
+	}
+	raw, err := proto.Marshal(pax)
+	if err != nil {
+		return fmt.Errorf("storage: marshal paxcounter: %w", err)
+	}
+	_, err = w.db.Exec(`INSERT INTO paxcounter_samples (
+	        packet_id,
+	        wifi,
+	        ble,
+	        uptime_seconds,
+	        raw_payload
+	    ) VALUES (?, ?, ?, ?, ?)
+	    ON CONFLICT(packet_id) DO UPDATE SET
+	        wifi=excluded.wifi,
+	        ble=excluded.ble,
+	        uptime_seconds=excluded.uptime_seconds,
+	        raw_payload=excluded.raw_payload`,
+		packetID,
+		nullUint32(uint32Ptr(pax.GetWifi())),
+		nullUint32(uint32Ptr(pax.GetBle())),
+		nullUint32(uint32Ptr(pax.GetUptime())),
+		nullBytes(raw),
+	)
+	if err != nil {
+		return fmt.Errorf("storage: insert paxcounter: %w", err)
 	}
 	return nil
 }
@@ -903,6 +1081,18 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
+	if err := createRangeTestResultsTable(db); err != nil {
+		return err
+	}
+
+	if err := createStoreForwardEventsTable(db); err != nil {
+		return err
+	}
+
+	if err := createPaxcounterSamplesTable(db); err != nil {
+		return err
+	}
+
 	if err := createLinkHistoryTable(db); err != nil {
 		return err
 	}
@@ -1020,6 +1210,60 @@ func copyColumnIfExists(db *sql.DB, table, from, to string) error {
 func populateHexColumn(db *sql.DB) error {
 	_, err := db.Exec(`UPDATE node_info SET hex_id = user_id WHERE (hex_id IS NULL OR hex_id = '') AND user_id IS NOT NULL`)
 	return err
+}
+
+func createRangeTestResultsTable(db *sql.DB) error {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS range_test_results (
+	        packet_id INTEGER PRIMARY KEY,
+	        text TEXT,
+	        raw_payload BLOB,
+	        FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	    )`); err != nil {
+		return fmt.Errorf("storage: create range_test_results: %w", err)
+	}
+	return nil
+}
+
+func createStoreForwardEventsTable(db *sql.DB) error {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS store_forward_events (
+	        packet_id INTEGER PRIMARY KEY,
+	        request_response TEXT,
+	        variant TEXT,
+	        messages_total INTEGER,
+	        messages_saved INTEGER,
+	        messages_max INTEGER,
+	        uptime_seconds INTEGER,
+	        requests_total INTEGER,
+	        requests_history INTEGER,
+	        heartbeat_flag INTEGER,
+	        return_max INTEGER,
+	        return_window INTEGER,
+	        history_messages INTEGER,
+	        history_window INTEGER,
+	        history_last_request INTEGER,
+	        heartbeat_period INTEGER,
+	        heartbeat_secondary INTEGER,
+	        text_payload BLOB,
+	        raw_payload BLOB,
+	        FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	    )`); err != nil {
+		return fmt.Errorf("storage: create store_forward_events: %w", err)
+	}
+	return nil
+}
+
+func createPaxcounterSamplesTable(db *sql.DB) error {
+	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS paxcounter_samples (
+	        packet_id INTEGER PRIMARY KEY,
+	        wifi INTEGER,
+	        ble INTEGER,
+	        uptime_seconds INTEGER,
+	        raw_payload BLOB,
+	        FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
+	    )`); err != nil {
+		return fmt.Errorf("storage: create paxcounter_samples: %w", err)
+	}
+	return nil
 }
 
 func createLinkHistoryTable(db *sql.DB) error {
@@ -1433,6 +1677,34 @@ func boolToInt(b bool) int {
 		return 1
 	}
 	return 0
+}
+
+func uint32Ptr(v uint32) *uint32 {
+	return &v
+}
+
+func statsSafe(stats *meshtasticpb.StoreAndForward_Statistics, getter func(*meshtasticpb.StoreAndForward_Statistics) uint32) *uint32 {
+	if stats == nil {
+		return nil
+	}
+	val := getter(stats)
+	return &val
+}
+
+func historySafe(history *meshtasticpb.StoreAndForward_History, getter func(*meshtasticpb.StoreAndForward_History) uint32) *uint32 {
+	if history == nil {
+		return nil
+	}
+	val := getter(history)
+	return &val
+}
+
+func heartbeatSafe(heartbeat *meshtasticpb.StoreAndForward_Heartbeat, getter func(*meshtasticpb.StoreAndForward_Heartbeat) uint32) *uint32 {
+	if heartbeat == nil {
+		return nil
+	}
+	val := getter(heartbeat)
+	return &val
 }
 
 func nullString(s string) interface{} {

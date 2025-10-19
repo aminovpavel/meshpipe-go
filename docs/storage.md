@@ -124,6 +124,45 @@ Raw telemetry protobuf frames keyed by packet.
 | `packet_id` | INTEGER PK | FK to `packet_history.id`. |
 | `raw_payload` | BLOB | Telemetry payload for later decoding. |
 
+### `range_test_results`
+
+Хранит фреймы RangeTest (текстовые волны).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
+| `text` | TEXT | Строка, переданная RangeTest. |
+| `raw_payload` | BLOB | Исходный payload.
+
+### `store_forward_events`
+
+Подробности StoreForward (router/client stats, history и т.п.).
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
+| `request_response` | TEXT | Тип RR (`ROUTER_STATS`, `CLIENT_PING` и т.д.). |
+| `variant` | TEXT | Какой вариант полезной нагрузки (`stats`, `history`, `heartbeat`, `text`, `none`). |
+| `messages_total`, `messages_saved`, `messages_max` | INTEGER | Показатели из Statistics. |
+| `uptime_seconds`, `requests_total`, `requests_history` | INTEGER | Router uptime и счётчики запросов. |
+| `heartbeat_flag` | INTEGER | 1, если флаг heartbeat в Statistics. |
+| `return_max`, `return_window` | INTEGER | Параметры выдачи истории. |
+| `history_messages`, `history_window`, `history_last_request` | INTEGER | Поля из History. |
+| `heartbeat_period`, `heartbeat_secondary` | INTEGER | Поля Heartbeat. |
+| `text_payload` | BLOB | Payload текстового ответа (если есть). |
+| `raw_payload` | BLOB | Полное сообщение StoreAndForward (protobuf). |
+
+### `paxcounter_samples`
+
+Срезы модуля Paxcounter.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `packet_id` | INTEGER PK | FK к `packet_history.id`. |
+| `wifi`, `ble` | INTEGER | Количество MAC в видимости. |
+| `uptime_seconds` | INTEGER | Аптайм узла (сек). |
+| `raw_payload` | BLOB | Сырый protobuf Paxcount. |
+
 ### `link_history`
 
 Пер-пакетная информация о приёме для графов и аналитики.
