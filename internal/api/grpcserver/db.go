@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"path/filepath"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -25,6 +26,11 @@ func openReadOnlyDB(path string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("grpcserver: open sqlite: %w", err)
 	}
+
+	db.SetMaxOpenConns(4)
+	db.SetMaxIdleConns(4)
+	db.SetConnMaxIdleTime(5 * time.Minute)
+	db.SetConnMaxLifetime(30 * time.Minute)
 
 	if _, err := db.Exec("PRAGMA query_only=ON"); err != nil {
 		_ = db.Close()

@@ -407,21 +407,6 @@ func (w *SQLiteWriter) loop(ctx context.Context) {
 				w.publishErr(err)
 			}
 
-			if err := w.storeRangeTest(packetID, pkt); err != nil {
-				w.metrics.IncStoreErrors()
-				w.publishErr(err)
-			}
-
-			if err := w.storeStoreForward(packetID, pkt); err != nil {
-				w.metrics.IncStoreErrors()
-				w.publishErr(err)
-			}
-
-			if err := w.storePaxcounter(packetID, pkt); err != nil {
-				w.metrics.IncStoreErrors()
-				w.publishErr(err)
-			}
-
 			if err := w.storeLinkHistory(packetID, pkt); err != nil {
 				w.metrics.IncStoreErrors()
 				w.publishErr(err)
@@ -1079,6 +1064,16 @@ func migrate(db *sql.DB) error {
     )`)
 	if err != nil {
 		return fmt.Errorf("storage: migrate packet_history: %w", err)
+	}
+
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_packet_history_timestamp ON packet_history(timestamp DESC, id DESC)`); err != nil {
+		return fmt.Errorf("storage: create packet_history timestamp index: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_packet_history_gateway_timestamp ON packet_history(gateway_id, timestamp DESC)`); err != nil {
+		return fmt.Errorf("storage: create packet_history gateway index: %w", err)
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_packet_history_portnum_timestamp ON packet_history(portnum_name, timestamp DESC)`); err != nil {
+		return fmt.Errorf("storage: create packet_history portnum index: %w", err)
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS node_info (
