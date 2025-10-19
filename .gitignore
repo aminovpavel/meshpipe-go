@@ -19,3 +19,5 @@ coverage/
 /tmp/
 .DS_Store
 
+# Generated configs
+configs/generated/

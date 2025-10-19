@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"os"
 	"strings"
 	"time"
 
-	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/meshpipe/v1"
+	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,6 +25,7 @@ type service struct {
 	db          *sql.DB
 	logger      *slog.Logger
 	maxPageSize int
+	version     versionInfo
 }
 
 func newService(db *sql.DB, logger *slog.Logger, maxPageSize int) *service {
@@ -31,7 +33,14 @@ func newService(db *sql.DB, logger *slog.Logger, maxPageSize int) *service {
 		db:          db,
 		logger:      logger.With(slog.String("component", "grpc-service")),
 		maxPageSize: maxPageSize,
+		version:     loadVersionInfo(),
 	}
+}
+
+type versionInfo struct {
+	version   string
+	gitSHA    string
+	buildDate string
 }
 
 func (s *service) GetDashboardStats(ctx context.Context, req *meshpipev1.DashboardRequest) (*meshpipev1.DashboardResponse, error) {
@@ -152,10 +161,24 @@ func (s *service) ListPackets(ctx context.Context, req *meshpipev1.ListPacketsRe
 	if err != nil {
 		return nil, err
 	}
-	return &meshpipev1.ListPacketsResponse{
+	resp := &meshpipev1.ListPacketsResponse{
 		Packets:    packets,
 		NextCursor: cursor,
-	}, nil
+	}
+
+	if req.GetAggregation().GetEnabled() {
+		meshIDs := make([]uint32, 0, len(packets))
+		for _, pkt := range packets {
+			meshIDs = append(meshIDs, pkt.GetMeshPacketId())
+		}
+		aggregates, aggErr := s.queryMeshPacketAggregates(ctx, meshIDs, req.GetFilter())
+		if aggErr != nil {
+			return nil, aggErr
+		}
+		resp.MeshPacketAggregates = aggregates
+	}
+
+	return resp, nil
 }
 
 func (s *service) StreamPackets(req *meshpipev1.ListPacketsRequest, stream meshpipev1.MeshpipeData_StreamPacketsServer) error {
@@ -168,51 +191,9 @@ func (s *service) StreamPackets(req *meshpipev1.ListPacketsRequest, stream meshp
 	args := make([]any, 0, 12)
 
 	if filter != nil {
-		if ts := filter.GetStartTime(); ts != nil {
-			where = append(where, "timestamp >= ?")
-			args = append(args, timestampToFloat(ts))
-		}
-		if ts := filter.GetEndTime(); ts != nil {
-			where = append(where, "timestamp <= ?")
-			args = append(args, timestampToFloat(ts))
-		}
-		if gw := strings.TrimSpace(filter.GetGatewayId()); gw != "" {
-			where = append(where, "gateway_id = ?")
-			args = append(args, gw)
-		}
-		if from := filter.GetFromNodeId(); from != 0 {
-			where = append(where, "from_node_id = ?")
-			args = append(args, from)
-		}
-		if to := filter.GetToNodeId(); to != 0 {
-			where = append(where, "to_node_id = ?")
-			args = append(args, to)
-		}
-		if chans := strings.TrimSpace(filter.GetChannelId()); chans != "" {
-			where = append(where, "channel_id = ?")
-			args = append(args, chans)
-		}
-		if portNames := filter.GetPortnumNames(); len(portNames) > 0 {
-			placeholders := make([]string, 0, len(portNames))
-			for _, pn := range portNames {
-				if pn = strings.TrimSpace(pn); pn != "" {
-					placeholders = append(placeholders, "?")
-					args = append(args, pn)
-				}
-			}
-			if len(placeholders) > 0 {
-				where = append(where, fmt.Sprintf("portnum_name IN (%s)", strings.Join(placeholders, ",")))
-			}
-		}
-		if hop := filter.GetHopCount(); hop != 0 {
-			where = append(where, "(hop_start IS NOT NULL AND hop_limit IS NOT NULL AND (hop_start - hop_limit) = ?)")
-			args = append(args, hop)
-		}
-		if search := strings.TrimSpace(filter.GetSearch()); search != "" {
-			pattern := "%" + search + "%"
-			where = append(where, `(gateway_id LIKE ? OR channel_id LIKE ? OR portnum_name LIKE ? OR CAST(from_node_id AS TEXT) LIKE ? OR CAST(to_node_id AS TEXT) LIKE ?)`)
-			args = append(args, pattern, pattern, pattern, pattern, pattern)
-		}
+		filterClauses, filterArgs := buildPacketFilterClauses(filter, "")
+		where = append(where, filterClauses...)
+		args = append(args, filterArgs...)
 	}
 
 	if cursor := strings.TrimSpace(page.GetCursor()); cursor != "" {
@@ -359,8 +340,11 @@ func (s *service) GetNode(ctx context.Context, req *meshpipev1.GetNodeRequest) (
 	            COUNT(*) AS total_packets,
 	            COUNT(DISTINCT to_node_id) AS unique_destinations,
 	            COUNT(DISTINCT gateway_id) AS unique_gateways,
+	            SUM(CASE WHEN timestamp >= unixepoch('now','-24 hours') THEN 1 ELSE 0 END) AS packets_24h,
+	            COUNT(DISTINCT CASE WHEN timestamp >= unixepoch('now','-24 hours') THEN gateway_id END) AS gateways_24h,
 	            MIN(timestamp) AS first_seen,
 	            MAX(timestamp) AS last_seen,
+	            MAX(timestamp) AS last_packet_time,
 	            AVG(CASE WHEN rssi IS NOT NULL AND rssi != 0 THEN rssi END) AS avg_rssi,
 	            AVG(CASE WHEN snr IS NOT NULL THEN snr END) AS avg_snr,
 	            AVG(CASE WHEN hop_start IS NOT NULL AND hop_limit IS NOT NULL THEN hop_start - hop_limit END) AS avg_hops
@@ -378,17 +362,20 @@ func (s *service) GetNode(ctx context.Context, req *meshpipev1.GetNodeRequest) (
         ni.role,
         ni.role_name,
         ni.region,
-        ni.region_name,
-        ni.modem_preset,
-        ni.modem_preset_name,
-        ns.total_packets,
-        ns.unique_destinations,
-        ns.unique_gateways,
-        ns.first_seen,
-        ns.last_seen,
-        ns.avg_rssi,
-        ns.avg_snr,
-        ns.avg_hops
+	        ni.region_name,
+	        ni.modem_preset,
+	        ni.modem_preset_name,
+	        ns.total_packets,
+	        ns.unique_destinations,
+	        ns.unique_gateways,
+	        ns.first_seen,
+	        ns.last_seen,
+	        ns.packets_24h,
+	        ns.last_packet_time,
+	        ns.gateways_24h,
+	        ns.avg_rssi,
+	        ns.avg_snr,
+	        ns.avg_hops
 	    FROM node_info ni
 	    LEFT JOIN node_stats ns ON ns.node_id = ni.node_id
 	    WHERE ni.node_id = ?`
@@ -402,6 +389,24 @@ func (s *service) GetNode(ctx context.Context, req *meshpipev1.GetNodeRequest) (
 		return nil, status.Errorf(codes.Internal, "query node: %v", err)
 	}
 	return &meshpipev1.GetNodeResponse{Node: node}, nil
+}
+
+func (s *service) GetNodeAnalytics(ctx context.Context, req *meshpipev1.GetNodeAnalyticsRequest) (*meshpipev1.GetNodeAnalyticsResponse, error) {
+	if req.GetNodeId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "node_id is required")
+	}
+	nodeResp, err := s.GetNode(ctx, &meshpipev1.GetNodeRequest{NodeId: req.GetNodeId()})
+	if err != nil {
+		return nil, err
+	}
+	analytics, err := s.queryNodeAnalytics(ctx, req.GetNodeId())
+	if err != nil {
+		return nil, err
+	}
+	return &meshpipev1.GetNodeAnalyticsResponse{
+		Node:      nodeResp.GetNode(),
+		Analytics: analytics,
+	}, nil
 }
 
 func (s *service) GetGatewayStats(ctx context.Context, req *meshpipev1.GatewayFilter) (*meshpipev1.GatewayStatsResponse, error) {
@@ -451,6 +456,22 @@ func (s *service) GetGatewayStats(ctx context.Context, req *meshpipev1.GatewayFi
 	return &meshpipev1.GatewayStatsResponse{Stats: stats}, nil
 }
 
+func (s *service) GetGatewayOverview(ctx context.Context, req *meshpipev1.GetGatewayOverviewRequest) (*meshpipev1.GetGatewayOverviewResponse, error) {
+	overviews, err := s.queryGatewayOverview(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &meshpipev1.GetGatewayOverviewResponse{Gateways: overviews}, nil
+}
+
+func (s *service) GetAnalyticsSummary(ctx context.Context, req *meshpipev1.GetAnalyticsSummaryRequest) (*meshpipev1.GetAnalyticsSummaryResponse, error) {
+	summary, err := s.queryAnalyticsSummary(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return summary, nil
+}
+
 func (s *service) ListLinks(ctx context.Context, req *meshpipev1.ListLinksRequest) (*meshpipev1.ListLinksResponse, error) {
 	response, err := s.queryLinks(ctx, req)
 	if err != nil {
@@ -489,6 +510,47 @@ func (s *service) ListPaxcounter(ctx context.Context, req *meshpipev1.ListPaxcou
 		return nil, err
 	}
 	return response, nil
+}
+
+func (s *service) ListNodeLocations(ctx context.Context, req *meshpipev1.ListNodeLocationsRequest) (*meshpipev1.ListNodeLocationsResponse, error) {
+	locations, cursor, err := s.queryNodeLocations(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return &meshpipev1.ListNodeLocationsResponse{
+		Locations:  locations,
+		NextCursor: cursor,
+	}, nil
+}
+
+func (s *service) GetChatWindow(ctx context.Context, req *meshpipev1.GetChatWindowRequest) (*meshpipev1.GetChatWindowResponse, error) {
+	return s.queryChatWindow(ctx, req)
+}
+
+func (s *service) ListTracerouteHops(ctx context.Context, req *meshpipev1.ListTracerouteHopsRequest) (*meshpipev1.ListTracerouteHopsResponse, error) {
+	return s.queryTracerouteHops(ctx, req)
+}
+
+func (s *service) GetTracerouteGraph(ctx context.Context, req *meshpipev1.TracerouteGraphRequest) (*meshpipev1.TracerouteGraphResponse, error) {
+	return s.queryTracerouteGraph(ctx, req)
+}
+
+func (s *service) Healthz(ctx context.Context, _ *meshpipev1.HealthCheckRequest) (*meshpipev1.HealthCheckResponse, error) {
+	if s.db == nil {
+		return &meshpipev1.HealthCheckResponse{Ready: false, Message: "database not initialised"}, nil
+	}
+	if err := s.db.PingContext(ctx); err != nil {
+		return &meshpipev1.HealthCheckResponse{Ready: false, Message: err.Error()}, nil
+	}
+	return &meshpipev1.HealthCheckResponse{Ready: true}, nil
+}
+
+func (s *service) GetVersion(ctx context.Context, _ *meshpipev1.GetVersionRequest) (*meshpipev1.VersionResponse, error) {
+	return &meshpipev1.VersionResponse{
+		Version:   s.version.version,
+		GitSha:    s.version.gitSHA,
+		BuildDate: s.version.buildDate,
+	}, nil
 }
 
 // Helper methods ------------------------------------------------------------
@@ -580,4 +642,19 @@ func uint32FromNull(value sql.NullInt64) uint32 {
 
 func boolFromInt(value sql.NullInt64) bool {
 	return value.Valid && value.Int64 != 0
+}
+
+func loadVersionInfo() versionInfo {
+	info := versionInfo{
+		version:   strings.TrimSpace(os.Getenv("MESHPIPE_VERSION")),
+		gitSHA:    strings.TrimSpace(os.Getenv("MESHPIPE_GIT_SHA")),
+		buildDate: strings.TrimSpace(os.Getenv("MESHPIPE_BUILD_DATE")),
+	}
+	if info.version == "" {
+		info.version = "dev"
+	}
+	if info.gitSHA == "" {
+		info.gitSHA = "unknown"
+	}
+	return info
 }

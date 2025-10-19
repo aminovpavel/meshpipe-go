@@ -16,12 +16,27 @@ services:
       # Storage / observability
       MESHPIPE_DATABASE_FILE: /data/meshtastic_history.db
       MESHPIPE_OBSERVABILITY_ADDRESS: ":2112"
+      # gRPC API
+      MESHPIPE_GRPC_ENABLED: "true"
     volumes:
       - meshpipe-data:/data
       - ./config.yaml:/config/config.yaml:ro
     ports:
       - "2112:2112" # /metrics and /healthz
     command: ["meshpipe"]
+
+  meshpipe-proxy:
+    image: envoyproxy/envoy:distroless-v1.31-latest
+    container_name: meshpipe-proxy
+    depends_on:
+      - meshpipe
+    restart: unless-stopped
+    volumes:
+      - ../configs/generated/envoy.meshpipe.yaml:/etc/envoy/envoy.yaml:ro
+    ports:
+      - "8443:8443"  # gRPC / gRPC-Web ingress
+      - "9901:9901"  # Envoy admin (/ready, /stats)
+    command: ["-c", "/etc/envoy/envoy.yaml", "--disable-hot-restart"]
 
 volumes:
   meshpipe-data:

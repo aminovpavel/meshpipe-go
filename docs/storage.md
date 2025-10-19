@@ -105,18 +105,22 @@ Linked table for decoded `TEXT_MESSAGE_APP` payloads.
 
 ### `positions`
 
-Stores decoded position payloads (`POSITION_APP`).
+Stores decoded position payloads (`POSITION_APP`) with additional accuracy metadata.
 
 | Column | Type | Notes |
 | --- | --- | --- |
-| `packet_id` | INTEGER UNIQUE | FK to `packet_history.id`. |
-| `from_node_id` | INTEGER | Node identifier (index). |
-| `latitude_i`, `longitude_i`, `altitude_i`, `precision_bits` | INTEGER | Meshtastic scaled coordinates. |
-| `latitude`, `longitude`, `altitude` | REAL | Converted coordinates. |
-| `time` | INTEGER | Report timestamp. |
-| `rssi`, `snr` | INTEGER/REAL | Radio metrics. |
-| `seq_number`, `fix_quality` | INTEGER | Additional fields from the payload. |
-| `raw_payload` | BLOB | Original payload.
+| `packet_id` | INTEGER PK | FK to `packet_history.id`. |
+| `latitude`, `longitude` | REAL | Decimal degrees (derived from `*_i`). |
+| `altitude` | INTEGER | Altitude in meters (MSL). |
+| `time`, `timestamp` | INTEGER | Device time fields carried in the payload. |
+| `precision_bits` | INTEGER | Precision bits reported by the sender. |
+| `gps_accuracy` | INTEGER | Hardware accuracy constant (millimetres). |
+| `pdop`, `hdop`, `vdop` | INTEGER | Dilution of precision metrics (1/100 units). |
+| `sats_in_view` | INTEGER | Number of satellites in view. |
+| `fix_quality`, `fix_type` | INTEGER | NMEA-style fix metadata. |
+| `ground_speed`, `ground_track` | INTEGER | Optional movement data (m/s, centidegrees). |
+| `next_update`, `seq_number` | INTEGER | Update cadence hints and payload sequence number. |
+| `raw_payload` | BLOB | Original protobuf payload for downstream consumers.
 
 ### `range_test_results`
 
@@ -224,6 +228,9 @@ NEIGHBORINFO (and, later, TRACEROUTE) storage for graph construction.
 - `longest_links` - node pairs with the highest observed hop counts per gateway.
 - `traceroute_longest_paths` - longest paths observed in `traceroute_hops` per node pair and gateway.
 - `traceroute_hop_summary` - average and maximum hop counts per gateway.
+- `mesh_packet_stats` - per-mesh-packet reception stats (gateway count, RSSI/SNR range, first/last reception).
+- `chat_messages` / `chat_message_gateways` - text message metadata joined with packet and reception records to drive chat windows.
+- `latest_node_locations` - most recent position per node (with precision metadata and primary channel).
 
 ## Node cache behaviour
 

@@ -509,8 +509,20 @@ func (w *SQLiteWriter) storePosition(packetID int64, pos *decode.PositionInfo) e
         altitude,
         time,
         timestamp,
-        raw_payload
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        raw_payload,
+        precision_bits,
+        gps_accuracy,
+        pdop,
+        hdop,
+        vdop,
+        sats_in_view,
+        fix_quality,
+        fix_type,
+        ground_speed,
+        ground_track,
+        next_update,
+        seq_number
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		packetID,
 		nullFloat64(pos.Latitude),
 		nullFloat64(pos.Longitude),
@@ -518,6 +530,18 @@ func (w *SQLiteWriter) storePosition(packetID int64, pos *decode.PositionInfo) e
 		int64(pos.Time),
 		int64(pos.Timestamp),
 		nullBytes(pos.RawPayload),
+		nullUint32(pos.PrecisionBits),
+		nullUint32(pos.GpsAccuracy),
+		nullUint32(pos.PDOP),
+		nullUint32(pos.HDOP),
+		nullUint32(pos.VDOP),
+		nullUint32(pos.SatsInView),
+		nullUint32(pos.FixQuality),
+		nullUint32(pos.FixType),
+		nullUint32(pos.GroundSpeed),
+		nullUint32(pos.GroundTrack),
+		nullUint32(pos.NextUpdate),
+		nullUint32(pos.SeqNumber),
 	)
 	if err != nil {
 		return fmt.Errorf("storage: insert position: %w", err)
@@ -1214,6 +1238,18 @@ func migrate(db *sql.DB) error {
 		return err
 	}
 
+	if err := createMeshPacketStatsView(db); err != nil {
+		return err
+	}
+
+	if err := createChatMessageViews(db); err != nil {
+		return err
+	}
+
+	if err := createLatestNodeLocationsView(db); err != nil {
+		return err
+	}
+
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS text_messages (
 	    packet_id INTEGER PRIMARY KEY,
 	    text TEXT,
@@ -1239,10 +1275,42 @@ func migrate(db *sql.DB) error {
 	    time INTEGER,
 	    timestamp INTEGER,
 	    raw_payload BLOB,
+	    precision_bits INTEGER,
+	    gps_accuracy INTEGER,
+	    pdop INTEGER,
+	    hdop INTEGER,
+	    vdop INTEGER,
+	    sats_in_view INTEGER,
+	    fix_quality INTEGER,
+	    fix_type INTEGER,
+	    ground_speed INTEGER,
+	    ground_track INTEGER,
+	    next_update INTEGER,
+	    seq_number INTEGER,
 	    FOREIGN KEY(packet_id) REFERENCES packet_history(id) ON DELETE CASCADE
 	)`)
 	if err != nil {
 		return fmt.Errorf("storage: migrate positions: %w", err)
+	}
+
+	positionColumns := map[string]string{
+		"precision_bits": "INTEGER",
+		"gps_accuracy":   "INTEGER",
+		"pdop":           "INTEGER",
+		"hdop":           "INTEGER",
+		"vdop":           "INTEGER",
+		"sats_in_view":   "INTEGER",
+		"fix_quality":    "INTEGER",
+		"fix_type":       "INTEGER",
+		"ground_speed":   "INTEGER",
+		"ground_track":   "INTEGER",
+		"next_update":    "INTEGER",
+		"seq_number":     "INTEGER",
+	}
+	for column, columnType := range positionColumns {
+		if err := addColumnIfMissing(db, "positions", column, columnType); err != nil {
+			return fmt.Errorf("storage: add %s column to positions: %w", column, err)
+		}
 	}
 
 	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS telemetry (
@@ -1582,6 +1650,140 @@ func createTracerouteViews(db *sql.DB) error {
 	        WHERE direction = 'towards'
 	        GROUP BY gateway_id`); err != nil {
 		return fmt.Errorf("storage: create traceroute_hop_summary view: %w", err)
+	}
+	return nil
+}
+
+func createMeshPacketStatsView(db *sql.DB) error {
+	if _, err := db.Exec(`DROP VIEW IF EXISTS mesh_packet_stats`); err != nil {
+		return fmt.Errorf("storage: drop mesh_packet_stats view: %w", err)
+	}
+	const query = `
+	        CREATE VIEW mesh_packet_stats AS
+	        SELECT
+	            ph.mesh_packet_id AS mesh_packet_id,
+	            COUNT(lh.id) AS reception_count,
+	            COUNT(DISTINCT lh.gateway_id) AS gateway_count,
+	            MIN(lh.rssi) AS min_rssi,
+	            MAX(lh.rssi) AS max_rssi,
+	            MIN(lh.snr) AS min_snr,
+	            MAX(lh.snr) AS max_snr,
+	            MIN(lh.received_at) AS first_received_at,
+	            MAX(lh.received_at) AS last_received_at
+	        FROM packet_history ph
+	        JOIN link_history lh ON lh.packet_id = ph.id
+	        WHERE ph.mesh_packet_id IS NOT NULL
+	        GROUP BY ph.mesh_packet_id`
+	if _, err := db.Exec(query); err != nil {
+		return fmt.Errorf("storage: create mesh_packet_stats view: %w", err)
+	}
+	return nil
+}
+
+func createChatMessageViews(db *sql.DB) error {
+	if _, err := db.Exec(`DROP VIEW IF EXISTS chat_messages`); err != nil {
+		return fmt.Errorf("storage: drop chat_messages view: %w", err)
+	}
+	const chatMessages = `
+	        CREATE VIEW chat_messages AS
+	        SELECT
+	            ph.id AS packet_id,
+	            ph.mesh_packet_id AS mesh_packet_id,
+	            ph.timestamp AS timestamp,
+	            ph.from_node_id AS from_node_id,
+	            ph.to_node_id AS to_node_id,
+	            ph.channel_id AS channel_id,
+	            ph.gateway_id AS gateway_id,
+	            ph.processed_successfully AS processed_successfully,
+	            tm.text AS text,
+	            tm.want_response AS want_response,
+	            tm.dest AS dest,
+	            tm.source AS source,
+	            tm.request_id AS request_id,
+	            tm.reply_id AS reply_id,
+	            tm.compressed AS compressed
+	        FROM text_messages tm
+	        JOIN packet_history ph ON ph.id = tm.packet_id`
+	if _, err := db.Exec(chatMessages); err != nil {
+		return fmt.Errorf("storage: create chat_messages view: %w", err)
+	}
+
+	if _, err := db.Exec(`DROP VIEW IF EXISTS chat_message_gateways`); err != nil {
+		return fmt.Errorf("storage: drop chat_message_gateways view: %w", err)
+	}
+	const chatGateways = `
+	        CREATE VIEW chat_message_gateways AS
+	        SELECT
+	            ph.id AS packet_id,
+	            lh.gateway_id AS gateway_id,
+	            MIN(lh.rssi) AS min_rssi,
+	            MAX(lh.rssi) AS max_rssi,
+	            MIN(lh.snr) AS min_snr,
+	            MAX(lh.snr) AS max_snr,
+	            COUNT(lh.id) AS reception_count
+	        FROM packet_history ph
+	        JOIN link_history lh ON lh.packet_id = ph.id
+	        WHERE ph.portnum_name IN ('Text message', 'Text message (compressed)')
+	        GROUP BY ph.id, lh.gateway_id`
+	if _, err := db.Exec(chatGateways); err != nil {
+		return fmt.Errorf("storage: create chat_message_gateways view: %w", err)
+	}
+	return nil
+}
+
+func createLatestNodeLocationsView(db *sql.DB) error {
+	if _, err := db.Exec(`DROP VIEW IF EXISTS latest_node_locations`); err != nil {
+		return fmt.Errorf("storage: drop latest_node_locations view: %w", err)
+	}
+	const query = `
+	        CREATE VIEW latest_node_locations AS
+	        WITH ranked AS (
+	            SELECT
+	                ph.from_node_id AS node_id,
+	                ph.gateway_id AS gateway_id,
+	                ph.channel_id AS channel_id,
+	                ph.timestamp AS timestamp,
+	                ph.id AS packet_id,
+	                pos.latitude AS latitude,
+	                pos.longitude AS longitude,
+	                pos.altitude AS altitude,
+	                pos.precision_bits AS precision_bits,
+	                pos.gps_accuracy AS gps_accuracy,
+	                pos.pdop AS pdop,
+	                pos.hdop AS hdop,
+	                pos.vdop AS vdop,
+	                pos.sats_in_view AS sats_in_view,
+	                pos.fix_quality AS fix_quality,
+	                pos.fix_type AS fix_type,
+	                ROW_NUMBER() OVER (PARTITION BY ph.from_node_id ORDER BY ph.timestamp DESC, ph.id DESC) AS row_num
+	            FROM positions pos
+	            JOIN packet_history ph ON ph.id = pos.packet_id
+	            WHERE ph.from_node_id IS NOT NULL
+	        )
+	        SELECT
+	            ranked.node_id AS node_id,
+	            ranked.gateway_id AS gateway_id,
+	            ranked.channel_id AS channel_id,
+	            ranked.timestamp AS timestamp,
+	            ranked.latitude AS latitude,
+	            ranked.longitude AS longitude,
+	            ranked.altitude AS altitude,
+	            ranked.precision_bits AS precision_bits,
+	            ranked.gps_accuracy AS gps_accuracy,
+	            ranked.pdop AS pdop,
+	            ranked.hdop AS hdop,
+	            ranked.vdop AS vdop,
+	            ranked.sats_in_view AS sats_in_view,
+	            ranked.fix_quality AS fix_quality,
+	            ranked.fix_type AS fix_type,
+	            ni.long_name AS long_name,
+	            ni.short_name AS short_name,
+	            ni.primary_channel AS primary_channel
+	        FROM ranked
+	        LEFT JOIN node_info ni ON ni.node_id = ranked.node_id
+	        WHERE ranked.row_num = 1`
+	if _, err := db.Exec(query); err != nil {
+		return fmt.Errorf("storage: create latest_node_locations view: %w", err)
 	}
 	return nil
 }

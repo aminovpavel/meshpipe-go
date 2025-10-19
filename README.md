@@ -104,13 +104,51 @@ Run `go test ./internal/api/grpcserver -run TestMeshpipeDataServiceEndToEnd` to 
 | `ListRangeTests` | RangeTest / telemetry results |
 | `ListStoreForward` | StoreForward monitoring (router/client stats, history, heartbeat) |
 | `ListPaxcounter` | Paxcounter dashboard, Wi-Fi/BLE charts, uptime |
+| `ListNodeLocations` | Latest decoded coordinates per node (with accuracy metadata) |
+| `GetChatWindow` | Chat windows (grouped TEXT_MESSAGE_APP payloads with counters) |
+| `GetNodeAnalytics` | Detailed node analytics (24h metrics, gateways, neighbors) |
+| `GetGatewayOverview` | Gateway leaderboard (counts, diversity, signal quality) |
+| `GetAnalyticsSummary` | Aggregate analytics bundle for dashboards |
+| `ListTracerouteHops` | Hop-by-hop traceroute observations |
+| `GetTracerouteGraph` | Network graph derived from traceroute data |
+| `Healthz`, `GetVersion` | Readiness and build metadata (used by UI/ops tooling) |
 
 Each method returns a `next_cursor` that must be supplied in the next request to paginate; the frontend can treat the cursor as an opaque string.
+
+- `ListPackets` accepts `aggregation.enabled=true` when you need grouped statistics per `mesh_packet_id`. In that mode the response includes `mesh_packet_aggregates` describing reception counts, gateway diversity, and signal ranges alongside the raw packets.
 
 ### gRPC Observability
 
 - Meshpipe exports `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total`, etc. (via `go-grpc-prometheus`). They are available on `/metrics` alongside the rest of the pipeline metrics.
 - When `grpc_auth_token` is enabled, authorization failures appear as `grpc_code="PermissionDenied"`. Clients must set the `Authorization: Bearer <token>` header.
+- Readiness/build data is available via RPC: `Healthz` reports readiness (and message), `GetVersion` returns semantic version, git SHA, and build time.
+
+### Deploying with the Envoy sidecar
+
+`envoyproxy/envoy:distroless-v1.31-latest` can front Meshpipe so browsers (gRPC-Web) and JSON clients share the same entrypoint.
+
+1. Render the config from the template (defaults shown):
+   ```bash
+   cd meshpipe-go
+   MESHPIPE_GRPC_UPSTREAM_HOST=meshpipe \
+   MESHPIPE_GRPC_AUTH_TOKEN="$(printf %s "$MESHPIPE_GRPC_AUTH_TOKEN")" \
+   ./scripts/render-envoy-config.sh
+   ```
+   Environment variables:
+   - `MESHPIPE_GRPC_PROXY_PORT` (default `8443`)
+   - `MESHPIPE_GRPC_UPSTREAM_HOST` (default `127.0.0.1`)
+   - `MESHPIPE_GRPC_UPSTREAM_PORT` (default `7443`)
+   - `MESHPIPE_GRPC_PROXY_ADMIN_PORT` (default `9901`)
+   - `MESHPIPE_GRPC_WEB_ENABLED` (`true`/`false`, default `true`)
+   - `MESHPIPE_GRPC_AUTH_TOKEN` (optional, forwarded as `Authorization: Bearer <token>`)
+
+2. Start both containers via Docker Compose (see `examples/docker-compose.yaml`). The Envoy service mounts `configs/generated/envoy.meshpipe.yaml` and exposes `8443` (ingress) and `9901` (admin `/ready`, `/stats`).
+
+3. Smoke-test the proxy:
+   ```bash
+   GRPC_PROXY_ADDRESS=localhost:8443 ./scripts/envoy-smoke.sh meshpipe.v1.MeshpipeData.GetVersion
+   ```
+   The script uses `grpcurl`; install it if missing (`go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest`).
 
 ## CLI Utilities
 - `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` from an existing SQLite DB through the Go pipeline, producing a regression database for comparison.

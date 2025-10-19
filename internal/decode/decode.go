@@ -110,13 +110,25 @@ type TextMessage struct {
 
 // PositionInfo holds decoded position data.
 type PositionInfo struct {
-	Proto      *meshtasticpb.Position
-	Latitude   *float64
-	Longitude  *float64
-	Altitude   *int32
-	Time       uint32
-	Timestamp  uint32
-	RawPayload []byte
+	Proto         *meshtasticpb.Position
+	Latitude      *float64
+	Longitude     *float64
+	Altitude      *int32
+	Time          uint32
+	Timestamp     uint32
+	RawPayload    []byte
+	PrecisionBits *uint32
+	GpsAccuracy   *uint32
+	PDOP          *uint32
+	HDOP          *uint32
+	VDOP          *uint32
+	SatsInView    *uint32
+	FixQuality    *uint32
+	FixType       *uint32
+	GroundSpeed   *uint32
+	GroundTrack   *uint32
+	NextUpdate    *uint32
+	SeqNumber     *uint32
 }
 
 // TelemetryInfo wraps telemetry metrics.

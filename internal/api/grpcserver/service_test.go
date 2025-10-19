@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/meshpipe/v1"
+	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/v1"
 	"github.com/aminovpavel/meshpipe-go/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -48,6 +48,9 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 	t.Cleanup(func() { _ = db.Close() })
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
+	t.Setenv("MESHPIPE_VERSION", "v0.2.0-test")
+	t.Setenv("MESHPIPE_GIT_SHA", "4314a53")
+	t.Setenv("MESHPIPE_BUILD_DATE", "2025-10-19T09:20:52Z")
 	service := newService(db, logger, 200)
 
 	const token = "secret-token"
@@ -202,6 +205,93 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		}
 	})
 
+	t.Run("list packets aggregation", func(t *testing.T) {
+		resp, err := client.ListPackets(authCtx, &meshpipev1.ListPacketsRequest{
+			Pagination:  &meshpipev1.Pagination{PageSize: 10},
+			Aggregation: &meshpipev1.MeshPacketAggregationOptions{Enabled: true},
+		})
+		if err != nil {
+			t.Fatalf("ListPackets with aggregation: %v", err)
+		}
+		if len(resp.GetMeshPacketAggregates()) == 0 {
+			t.Fatalf("expected mesh packet aggregates in response")
+		}
+		var found bool
+		for _, agg := range resp.GetMeshPacketAggregates() {
+			if agg.GetMeshPacketId() == 103 {
+				found = true
+				if agg.GetReceptionCount() != 1 {
+					t.Fatalf("expected reception count 1, got %d", agg.GetReceptionCount())
+				}
+				if agg.GetGatewayCount() != 1 {
+					t.Fatalf("expected gateway count 1, got %d", agg.GetGatewayCount())
+				}
+				if agg.GetMinRssi() != -68 || agg.GetMaxRssi() != -68 {
+					t.Fatalf("unexpected RSSI bounds: min %d max %d", agg.GetMinRssi(), agg.GetMaxRssi())
+				}
+				if agg.GetMinHopCount() != 1 || agg.GetMaxHopCount() != 1 {
+					t.Fatalf("unexpected hop bounds: min %d max %d", agg.GetMinHopCount(), agg.GetMaxHopCount())
+				}
+				if agg.GetFirstReceivedAt() == nil || agg.GetLastReceivedAt() == nil {
+					t.Fatalf("expected first/last received timestamps")
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("expected aggregate for mesh_packet_id 103")
+		}
+	})
+
+	t.Run("list node locations", func(t *testing.T) {
+		locations, err := client.ListNodeLocations(authCtx, &meshpipev1.ListNodeLocationsRequest{
+			Pagination: &meshpipev1.Pagination{PageSize: 5},
+		})
+		if err != nil {
+			t.Fatalf("ListNodeLocations: %v", err)
+		}
+		if len(locations.GetLocations()) != 1 {
+			t.Fatalf("expected single node location, got %d", len(locations.GetLocations()))
+		}
+		loc := locations.GetLocations()[0]
+		if loc.GetNodeId() != 0x1234 {
+			t.Fatalf("expected node id 0x1234, got 0x%x", loc.GetNodeId())
+		}
+		if math.Abs(loc.GetLatitude()-37.7749) > 0.0001 || math.Abs(loc.GetLongitude()-(-122.4194)) > 0.0001 {
+			t.Fatalf("unexpected coordinates: lat %.5f lon %.5f", loc.GetLatitude(), loc.GetLongitude())
+		}
+		if loc.GetSatsInView() != 8 {
+			t.Fatalf("expected sats_in_view 8, got %d", loc.GetSatsInView())
+		}
+		if loc.GetPrecisionMeters() <= 0 {
+			t.Fatalf("expected positive precision meters, got %.2f", loc.GetPrecisionMeters())
+		}
+		if loc.GetDisplayName() == "" {
+			t.Fatalf("expected display name to be populated")
+		}
+		if loc.GetAgeHours() < 0 {
+			t.Fatalf("expected non-negative age hours, got %.2f", loc.GetAgeHours())
+		}
+	})
+
+	t.Run("chat window", func(t *testing.T) {
+		resp, err := client.GetChatWindow(authCtx, &meshpipev1.GetChatWindowRequest{
+			Pagination: &meshpipev1.Pagination{PageSize: 5},
+		})
+		if err != nil {
+			t.Fatalf("GetChatWindow: %v", err)
+		}
+		if len(resp.GetMessages()) != 1 {
+			t.Fatalf("expected single chat message, got %d", len(resp.GetMessages()))
+		}
+		msg := resp.GetMessages()[0]
+		if msg.GetPacketId() == 0 || msg.GetText() == "" {
+			t.Fatalf("unexpected chat message: %+v", msg)
+		}
+		if resp.GetCounters().GetMessages_24H() == 0 {
+			t.Fatalf("expected 24h chat counter to be non-zero")
+		}
+	})
+
 	t.Run("list nodes and get node", func(t *testing.T) {
 		nodes, err := client.ListNodes(authCtx, &meshpipev1.ListNodesRequest{
 			Pagination: &meshpipev1.Pagination{PageSize: 10},
@@ -241,6 +331,22 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		}
 	})
 
+	t.Run("node analytics", func(t *testing.T) {
+		resp, err := client.GetNodeAnalytics(authCtx, &meshpipev1.GetNodeAnalyticsRequest{NodeId: 0x1234})
+		if err != nil {
+			t.Fatalf("GetNodeAnalytics: %v", err)
+		}
+		if resp.GetAnalytics().GetPackets_24H() == 0 {
+			t.Fatalf("expected packets_24h to be populated")
+		}
+		if len(resp.GetAnalytics().GetGateways()) == 0 {
+			t.Fatalf("expected gateway metrics in analytics")
+		}
+		if len(resp.GetAnalytics().GetNeighbors()) == 0 {
+			t.Fatalf("expected neighbor metrics in analytics")
+		}
+	})
+
 	t.Run("gateway stats and links", func(t *testing.T) {
 		stats, err := client.GetGatewayStats(authCtx, &meshpipev1.GatewayFilter{})
 		if err != nil {
@@ -271,6 +377,35 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		}
 	})
 
+	t.Run("gateway overview", func(t *testing.T) {
+		overview, err := client.GetGatewayOverview(authCtx, &meshpipev1.GetGatewayOverviewRequest{})
+		if err != nil {
+			t.Fatalf("GetGatewayOverview: %v", err)
+		}
+		if len(overview.GetGateways()) == 0 {
+			t.Fatalf("expected at least one gateway overview entry")
+		}
+		if overview.GetGateways()[0].GetPacketCount() == 0 {
+			t.Fatalf("expected packet count in gateway overview")
+		}
+	})
+
+	t.Run("analytics summary", func(t *testing.T) {
+		summary, err := client.GetAnalyticsSummary(authCtx, &meshpipev1.GetAnalyticsSummaryRequest{})
+		if err != nil {
+			t.Fatalf("GetAnalyticsSummary: %v", err)
+		}
+		if summary.GetPacketSuccess().GetTotalPackets() == 0 {
+			t.Fatalf("expected packet success stats to be populated")
+		}
+		if len(summary.GetHourlyPackets()) != 24 {
+			t.Fatalf("expected 24 temporal buckets, got %d", len(summary.GetHourlyPackets()))
+		}
+		if len(summary.GetGatewayDistribution()) == 0 {
+			t.Fatalf("expected gateway distribution entries")
+		}
+	})
+
 	t.Run("traceroute summaries", func(t *testing.T) {
 		tr, err := client.ListTraceroutes(authCtx, &meshpipev1.ListTraceroutesRequest{
 			Pagination: &meshpipev1.Pagination{PageSize: 5},
@@ -287,6 +422,28 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		}
 		if path.GetObservations() != 1 {
 			t.Fatalf("expected observations = 1, got %d", path.GetObservations())
+		}
+	})
+
+	t.Run("traceroute hops", func(t *testing.T) {
+		hops, err := client.ListTracerouteHops(authCtx, &meshpipev1.ListTracerouteHopsRequest{
+			Pagination: &meshpipev1.Pagination{PageSize: 10},
+		})
+		if err != nil {
+			t.Fatalf("ListTracerouteHops: %v", err)
+		}
+		if len(hops.GetHops()) != 3 {
+			t.Fatalf("expected 3 traceroute hops, got %d", len(hops.GetHops()))
+		}
+	})
+
+	t.Run("traceroute graph", func(t *testing.T) {
+		graph, err := client.GetTracerouteGraph(authCtx, &meshpipev1.TracerouteGraphRequest{})
+		if err != nil {
+			t.Fatalf("GetTracerouteGraph: %v", err)
+		}
+		if len(graph.GetNodes()) == 0 || len(graph.GetEdges()) == 0 {
+			t.Fatalf("expected traceroute graph to include nodes and edges")
 		}
 	})
 
@@ -313,6 +470,26 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		}
 		if len(pc.GetSamples()) != 1 || pc.GetSamples()[0].GetWifi() != 11 || pc.GetSamples()[0].GetBle() != 6 {
 			t.Fatalf("unexpected paxcounter sample: %+v", pc.GetSamples())
+		}
+	})
+
+	t.Run("healthz", func(t *testing.T) {
+		health, err := client.Healthz(authCtx, &meshpipev1.HealthCheckRequest{})
+		if err != nil {
+			t.Fatalf("Healthz: %v", err)
+		}
+		if !health.GetReady() {
+			t.Fatalf("expected health ready")
+		}
+	})
+
+	t.Run("version", func(t *testing.T) {
+		version, err := client.GetVersion(authCtx, &meshpipev1.GetVersionRequest{})
+		if err != nil {
+			t.Fatalf("GetVersion: %v", err)
+		}
+		if version.GetVersion() != "v0.2.0-test" || version.GetGitSha() != "4314a53" {
+			t.Fatalf("unexpected version info: %+v", version)
 		}
 	})
 
@@ -425,11 +602,39 @@ func seedSampleDatabase(t *testing.T, path string) (*sql.DB, seededTimestamps) {
 	insertPacket(3, ts.Range, 0x1234, 0x5678, 10, "Range test", "r", true, -65, 10.2)
 	insertPacket(4, ts.Trace, 0x1234, 0x5678, 11, "Traceroute", "tr", true, -60, 8.8)
 
+	exec(`INSERT INTO text_messages (packet_id, text, want_response, dest, source, request_id, reply_id, emoji, bitfield, compressed)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		1, "Hello from node 0x1234", 0, 0, 0, 0, 0, 0, 0, 0)
+
+	exec(`INSERT INTO positions (
+        packet_id, latitude, longitude, altitude, time, timestamp, raw_payload,
+        precision_bits, gps_accuracy, pdop, hdop, vdop, sats_in_view, fix_quality, fix_type, ground_speed, ground_track, next_update, seq_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		1,
+		37.7749, -122.4194,
+		15,
+		uint32(ts.Range),
+		uint32(ts.Range),
+		[]byte{0x10},
+		10,
+		3000,
+		150,
+		80,
+		70,
+		8,
+		2,
+		3,
+		35,
+		1200,
+		60,
+		42,
+	)
+
 	exec(`INSERT INTO range_test_results (packet_id, text, raw_payload) VALUES (?, ?, ?)`,
 		3, "RANGE_OK", []byte("RANGE"))
 
 	exec(`INSERT INTO store_forward_events (packet_id, request_response, variant, messages_total, messages_saved, messages_max, uptime_seconds, requests_total, requests_history, heartbeat_flag, return_max, return_window, raw_payload)
-	      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		1, "stats", "router_stats", 10, 8, 50, 777, 3, 2, 1, 12, 30, []byte{0x01})
 
 	exec(`INSERT INTO paxcounter_samples (packet_id, wifi, ble, uptime_seconds, raw_payload)
@@ -437,11 +642,11 @@ func seedSampleDatabase(t *testing.T, path string) (*sql.DB, seededTimestamps) {
 		2, 11, 6, 3600, []byte{0x02})
 
 	exec(`INSERT INTO link_history (packet_id, gateway_id, from_node_id, to_node_id, hop_index, hop_limit, rssi, snr, channel_id, channel_name, received_at)
-	      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		3, "gw-1", 0x1234, 0x5678, 1, 3, -68, 8.1, "LongFast", "LongFast", ts.Range)
 
 	exec(`INSERT INTO gateway_node_stats (gateway_id, node_id, first_seen, last_seen, packets_total, last_rssi, last_snr)
-	      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		"gw-1", 0x1234, ts.Old, ts.Range, 3, -65, 9.0)
 
 	exec(`INSERT INTO gateway_node_stats (gateway_id, node_id, first_seen, last_seen, packets_total, last_rssi, last_snr)

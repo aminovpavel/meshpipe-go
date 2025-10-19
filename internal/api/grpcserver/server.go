@@ -8,7 +8,7 @@ import (
 	"net"
 	"sync"
 
-	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/meshpipe/v1"
+	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/v1"
 	"github.com/aminovpavel/meshpipe-go/internal/observability"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
