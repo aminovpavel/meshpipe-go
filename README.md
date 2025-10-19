@@ -91,6 +91,27 @@ When `MESHPIPE_GRPC_ENABLED` is set to `true` Meshpipe starts a read-only gRPC s
 
 Run `go test ./internal/api/grpcserver -run TestMeshpipeDataServiceEndToEnd` to execute the end-to-end gRPC smoke/regression test that seeds a temporary SQLite database and exercises dashboard, packet history, node summaries, gateway/link aggregates, traceroute paths, and module tables.
 
+### RPC → UI mapping
+
+| RPC | Основное использование в Malla / внешних клиентах |
+| --- | --- |
+| `GetDashboardStats` | Главная панель, метрики за 1/6/24h, распределение по протоколам |
+| `ListPackets` / `StreamPackets` | История пакетов, поиск, фильтры, live-поток |
+| `ListNodes`, `GetNode` | Список узлов, карточка узла, статистика gateway/назначений |
+| `GetGatewayStats` | Сравнение gateway, агрегаты для вкладок статистики |
+| `ListLinks` | Граф связей, таблицы линков, longest links |
+| `ListTraceroutes` | Карта маршрутов, longest path, hop summary |
+| `ListRangeTests` | Раздел RangeTest/Telemetry (результаты проверок) |
+| `ListStoreForward` | Мониторинг StoreForward (router/client stats, history, heartbeat) |
+| `ListPaxcounter` | Вкладка Paxcounter, графики Wi-Fi/BLE, uptime |
+
+Каждый метод возвращает `next_cursor`, который нужно передавать в следующем запросе для пагинации; фронт может хранить курсор как opaque строку.
+
+### Наблюдаемость gRPC
+
+- Meshpipe автоматически экспортирует метрики `grpc_server_handled_total`, `grpc_server_handling_seconds`, `grpc_server_msg_received_total` и т.д. (из `go-grpc-prometheus`). Они доступны на `/metrics` вместе с остальными показателями пайплайна.
+- При включённом `grpc_auth_token` отказ авторизации фиксируется как `grpc_code="PermissionDenied"`. Клиентам важно выставлять заголовок `Authorization: Bearer <token>`.
+
 ## CLI Utilities
 - `cmd/meshpipe-replay`: replays `packet_history.raw_service_envelope` from an existing SQLite DB through the Go pipeline, producing a regression database for comparison.
 - `cmd/meshpipe-diff`: compares two capture SQLite databases and reports row-level differences in `packet_history` / `node_info` with sample fingerprints—useful for validating schema migrations or new decoder logic.

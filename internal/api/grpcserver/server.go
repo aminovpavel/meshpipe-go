@@ -10,6 +10,8 @@ import (
 
 	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/meshpipe/v1"
 	"github.com/aminovpavel/meshpipe-go/internal/observability"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -54,15 +56,24 @@ func New(cfg Config, logger *slog.Logger, metrics *observability.Metrics) (*Serv
 
 	service := newService(db, logger, cfg.MaxPageSize)
 
-	opts := []grpc.ServerOption{}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
+		grpc_prometheus.UnaryServerInterceptor,
+	}
+	streamInterceptors := []grpc.StreamServerInterceptor{
+		grpc_prometheus.StreamServerInterceptor,
+	}
 	if cfg.AuthToken != "" {
-		opts = append(opts,
-			grpc.UnaryInterceptor(tokenUnaryInterceptor(cfg.AuthToken)),
-			grpc.StreamInterceptor(tokenStreamInterceptor(cfg.AuthToken)),
-		)
+		unaryInterceptors = append([]grpc.UnaryServerInterceptor{tokenUnaryInterceptor(cfg.AuthToken)}, unaryInterceptors...)
+		streamInterceptors = append([]grpc.StreamServerInterceptor{tokenStreamInterceptor(cfg.AuthToken)}, streamInterceptors...)
+	}
+
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamInterceptors...)),
 	}
 
 	grpcSrv := grpc.NewServer(opts...)
+	grpc_prometheus.Register(grpcSrv)
 	meshpipev1.RegisterMeshpipeDataServer(grpcSrv, service)
 
 	return &Server{

@@ -159,14 +159,179 @@ func (s *service) ListPackets(ctx context.Context, req *meshpipev1.ListPacketsRe
 }
 
 func (s *service) StreamPackets(req *meshpipev1.ListPacketsRequest, stream meshpipev1.MeshpipeData_StreamPacketsServer) error {
-	packets, _, err := s.queryPackets(stream.Context(), req)
-	if err != nil {
-		return err
+	filter := req.GetFilter()
+	page := req.GetPagination()
+	limit := limitPageSize(page.GetPageSize(), s.maxPageSize)
+	includePayload := req.GetIncludePayload()
+
+	where := []string{"1=1"}
+	args := make([]any, 0, 12)
+
+	if filter != nil {
+		if ts := filter.GetStartTime(); ts != nil {
+			where = append(where, "timestamp >= ?")
+			args = append(args, timestampToFloat(ts))
+		}
+		if ts := filter.GetEndTime(); ts != nil {
+			where = append(where, "timestamp <= ?")
+			args = append(args, timestampToFloat(ts))
+		}
+		if gw := strings.TrimSpace(filter.GetGatewayId()); gw != "" {
+			where = append(where, "gateway_id = ?")
+			args = append(args, gw)
+		}
+		if from := filter.GetFromNodeId(); from != 0 {
+			where = append(where, "from_node_id = ?")
+			args = append(args, from)
+		}
+		if to := filter.GetToNodeId(); to != 0 {
+			where = append(where, "to_node_id = ?")
+			args = append(args, to)
+		}
+		if chans := strings.TrimSpace(filter.GetChannelId()); chans != "" {
+			where = append(where, "channel_id = ?")
+			args = append(args, chans)
+		}
+		if portNames := filter.GetPortnumNames(); len(portNames) > 0 {
+			placeholders := make([]string, 0, len(portNames))
+			for _, pn := range portNames {
+				if pn = strings.TrimSpace(pn); pn != "" {
+					placeholders = append(placeholders, "?")
+					args = append(args, pn)
+				}
+			}
+			if len(placeholders) > 0 {
+				where = append(where, fmt.Sprintf("portnum_name IN (%s)", strings.Join(placeholders, ",")))
+			}
+		}
+		if hop := filter.GetHopCount(); hop != 0 {
+			where = append(where, "(hop_start IS NOT NULL AND hop_limit IS NOT NULL AND (hop_start - hop_limit) = ?)")
+			args = append(args, hop)
+		}
+		if search := strings.TrimSpace(filter.GetSearch()); search != "" {
+			pattern := "%" + search + "%"
+			where = append(where, `(gateway_id LIKE ? OR channel_id LIKE ? OR portnum_name LIKE ? OR CAST(from_node_id AS TEXT) LIKE ? OR CAST(to_node_id AS TEXT) LIKE ?)`)
+			args = append(args, pattern, pattern, pattern, pattern, pattern)
+		}
 	}
-	for _, pkt := range packets {
+
+	if cursor := strings.TrimSpace(page.GetCursor()); cursor != "" {
+		ts, id, err := decodeCursor(cursor)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "invalid cursor: %v", err)
+		}
+		if ts > 0 || id > 0 {
+			where = append(where, "(timestamp < ? OR (timestamp = ? AND id < ?))")
+			args = append(args, ts, ts, id)
+		}
+	}
+
+	columns := []string{
+		"id",
+		"timestamp",
+		"from_node_id",
+		"to_node_id",
+		"portnum_name",
+		"gateway_id",
+		"channel_id",
+		"hop_start",
+		"hop_limit",
+		"rssi",
+		"snr",
+		"mesh_packet_id",
+		"processed_successfully",
+		"payload_length",
+	}
+	if includePayload {
+		columns = append(columns, "raw_payload")
+	}
+
+	query := fmt.Sprintf(`SELECT %s FROM packet_history WHERE %s ORDER BY timestamp DESC, id DESC LIMIT ?`,
+		strings.Join(columns, ", "),
+		strings.Join(where, " AND "),
+	)
+
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(stream.Context(), query, args...)
+	if err != nil {
+		return status.Errorf(codes.Internal, "query packets stream: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			id         int64
+			timestamp  sql.NullFloat64
+			fromNode   sql.NullInt64
+			toNode     sql.NullInt64
+			portName   sql.NullString
+			gatewayID  sql.NullString
+			channelID  sql.NullString
+			hopStart   sql.NullInt64
+			hopLimit   sql.NullInt64
+			rssi       sql.NullInt64
+			snr        sql.NullFloat64
+			meshID     sql.NullInt64
+			proc       sql.NullInt64
+			payloadLen sql.NullInt64
+			rawPayload []byte
+		)
+
+		dest := []any{
+			&id,
+			&timestamp,
+			&fromNode,
+			&toNode,
+			&portName,
+			&gatewayID,
+			&channelID,
+			&hopStart,
+			&hopLimit,
+			&rssi,
+			&snr,
+			&meshID,
+			&proc,
+			&payloadLen,
+		}
+		if includePayload {
+			dest = append(dest, &rawPayload)
+		}
+
+		if err := rows.Scan(dest...); err != nil {
+			return status.Errorf(codes.Internal, "scan packet row: %v", err)
+		}
+
+		pkt := &meshpipev1.Packet{
+			Id:                    uint64(id),
+			Timestamp:             toTimestamp(timestamp),
+			FromNodeId:            uint32FromNull(fromNode),
+			ToNodeId:              uint32FromNull(toNode),
+			PortnumName:           portName.String,
+			GatewayId:             gatewayID.String,
+			ChannelId:             channelID.String,
+			HopStart:              int32(hopStart.Int64),
+			HopLimit:              int32(hopLimit.Int64),
+			Rssi:                  int32(rssi.Int64),
+			Snr:                   snr.Float64,
+			MeshPacketId:          uint32FromNull(meshID),
+			ProcessedSuccessfully: boolFromInt(proc),
+			PayloadLength:         uint32FromNull(payloadLen),
+		}
+
+		if hopStart.Valid && hopLimit.Valid {
+			pkt.HopCount = int32(hopStart.Int64 - hopLimit.Int64)
+		}
+		if includePayload && rawPayload != nil {
+			pkt.RawPayload = append([]byte{}, rawPayload...)
+		}
+
 		if err := stream.Send(pkt); err != nil {
 			return err
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return status.Errorf(codes.Internal, "iterate packet stream: %v", err)
 	}
 	return nil
 }
