@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"google.golang.org/protobuf/proto"
+
 	meshtasticpb "github.com/aminovpavel/meshpipe-go/internal/decode/pb/meshtastic"
 	"github.com/aminovpavel/meshpipe-go/internal/mqtt"
 )
@@ -47,6 +49,8 @@ type Packet struct {
 
 	ProcessedSuccessfully bool
 	ParsingError          string
+	DecodedPortPayload    map[string]proto.Message
+	ExtraText             map[string]string
 
 	Node      *NodeInfo
 	Text      *TextMessage
@@ -61,24 +65,31 @@ type Decoder interface {
 
 // NodeInfo captures metadata about a node derived from NODEINFO packets.
 type NodeInfo struct {
-	NodeID         uint32
-	UserID         string
-	PrimaryChannel string
-	LongName       string
-	ShortName      string
-	HWModel        int32
-	Role           int32
-	IsLicensed     bool
-	MacAddress     string
-	Snr            float32
-	LastHeard      uint32
-	ViaMQTT        bool
-	Channel        uint32
-	HopsAway       *uint32
-	IsFavorite     bool
-	IsIgnored      bool
-	IsKeyVerified  bool
-	UpdatedAt      time.Time
+	NodeID          uint32
+	UserID          string
+	PrimaryChannel  string
+	LongName        string
+	ShortName       string
+	HWModel         int32
+	HWModelName     string
+	Role            int32
+	RoleName        string
+	IsLicensed      bool
+	MacAddress      string
+	Snr             float32
+	LastHeard       uint32
+	ViaMQTT         bool
+	Channel         uint32
+	HopsAway        *uint32
+	IsFavorite      bool
+	IsIgnored       bool
+	IsKeyVerified   bool
+	UpdatedAt       time.Time
+	Region          string
+	RegionName      string
+	FirmwareVersion string
+	ModemPreset     string
+	ModemPresetName string
 }
 
 // TextMessage captures decoded text payloads.

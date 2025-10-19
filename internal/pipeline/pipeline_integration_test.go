@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"sync"
 	"testing"
 	"time"
@@ -65,6 +66,18 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 	}
 
 	client.messages <- mqtt.Message{
+		Topic:   makeTopic("map"),
+		Payload: buildServiceEnvelope(t, buildMapReportData(t)),
+		Time:    time.Now(),
+	}
+
+	client.messages <- mqtt.Message{
+		Topic:   makeTopic("n"),
+		Payload: buildServiceEnvelope(t, buildNeighborInfoData(t)),
+		Time:    time.Now(),
+	}
+
+	client.messages <- mqtt.Message{
 		Topic:   makeTopic("t"),
 		Payload: buildServiceEnvelope(t, buildTextMessageData()),
 		Time:    time.Now(),
@@ -92,8 +105,8 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		if err := db.QueryRow(`SELECT COUNT(*) FROM packet_history`).Scan(&count); err != nil {
 			return err
 		}
-		if count < 4 {
-			return fmt.Errorf("expected packet_history >= 4, got %d", count)
+		if count < 6 {
+			return fmt.Errorf("expected packet_history >= 6, got %d", count)
 		}
 		if err := db.QueryRow(`SELECT COUNT(*) FROM text_messages`).Scan(&count); err != nil {
 			return err
@@ -136,8 +149,8 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 	if err := row.Scan(&portName, &msgType, &chName); err != nil {
 		t.Fatalf("scan packet: %v", err)
 	}
-	if portName != "NODEINFO_APP" {
-		t.Fatalf("expected NODEINFO_APP, got %s", portName)
+	if portName != "Node info" {
+		t.Fatalf("expected Node info, got %s", portName)
 	}
 	if msgType != "e" {
 		t.Fatalf("expected message type 'e', got %s", msgType)
@@ -146,13 +159,24 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 		t.Fatalf("expected channel name LongFast, got %s", chName)
 	}
 
-	nodeRow := db.QueryRow(`SELECT user_id, hex_id, long_name, primary_channel, first_seen, last_updated FROM node_info WHERE node_id = ?`, 0x1234)
-	var userID, hexID, longName, primary string
+	var ts float64
+	if err := db.QueryRow(`SELECT timestamp FROM packet_history LIMIT 1`).Scan(&ts); err != nil {
+		t.Fatalf("scan timestamp: %v", err)
+	}
+	if ts > 1e12 {
+		t.Fatalf("expected timestamp in seconds, got %f", ts)
+	}
+	if _, frac := math.Modf(ts); frac == 0 {
+		t.Fatalf("expected fractional second precision, got %f", ts)
+	}
+
+	nodeRow := db.QueryRow(`SELECT user_id, hex_id, long_name, primary_channel, first_seen, last_updated, role_name, hw_model_name, region, region_name, firmware_version, modem_preset_name FROM node_info WHERE node_id = ?`, 0x1234)
+	var userID, hexID, longName, primary, roleName, hwModelName, region, regionName, firmwareVersion, modemPresetName string
 	var firstSeen, lastUpdated float64
-	if err := nodeRow.Scan(&userID, &hexID, &longName, &primary, &firstSeen, &lastUpdated); err != nil {
+	if err := nodeRow.Scan(&userID, &hexID, &longName, &primary, &firstSeen, &lastUpdated, &roleName, &hwModelName, &region, &regionName, &firmwareVersion, &modemPresetName); err != nil {
 		t.Fatalf("scan node_info: %v", err)
 	}
-	if userID != "!12345678" || hexID != "!12345678" || longName != "Test Node" {
+	if userID != "!12345678" || hexID != "!12345678" || longName != "Gateway Node" {
 		t.Fatalf("unexpected node info: user=%s hex=%s long=%s", userID, hexID, longName)
 	}
 	if primary != "LongFast" {
@@ -163,6 +187,74 @@ func TestPipelineStoresPacketVariants(t *testing.T) {
 	}
 	if lastUpdated < firstSeen {
 		t.Fatalf("expected last_updated >= first_seen, got first=%f last=%f", firstSeen, lastUpdated)
+	}
+	if roleName != "Router" {
+		t.Fatalf("expected role name Router, got %s", roleName)
+	}
+	if hwModelName != "Tbeam" {
+		t.Fatalf("expected hardware name Tbeam, got %s", hwModelName)
+	}
+	if region != "EU_868" {
+		t.Fatalf("expected region code EU_868, got %s", region)
+	}
+	if regionName != "EU 868" {
+		t.Fatalf("expected region name EU 868, got %s", regionName)
+	}
+	if firmwareVersion != "2.1.0" {
+		t.Fatalf("expected firmware version 2.1.0, got %s", firmwareVersion)
+	}
+	if modemPresetName != "Short Fast" {
+		t.Fatalf("expected modem preset Short Fast, got %s", modemPresetName)
+	}
+
+	linkRow := db.QueryRow(`SELECT gateway_id, from_node_id, to_node_id, hop_index FROM link_history ORDER BY id DESC LIMIT 1`)
+	var linkGateway string
+	var linkFrom, linkTo, hopIndex int64
+	if err := linkRow.Scan(&linkGateway, &linkFrom, &linkTo, &hopIndex); err != nil {
+		t.Fatalf("scan link_history: %v", err)
+	}
+	if linkGateway != "!gateway" {
+		t.Fatalf("expected link gateway !gateway, got %s", linkGateway)
+	}
+	if linkFrom != 0x1234 {
+		t.Fatalf("expected link from 0x1234, got %d", linkFrom)
+	}
+	if hopIndex < 0 {
+		t.Fatalf("expected non-negative hop index, got %d", hopIndex)
+	}
+
+	statsRow := db.QueryRow(`SELECT packets_total, last_seen FROM gateway_node_stats WHERE gateway_id = ? AND node_id = ?`, "!gateway", 0x1234)
+	var packetsTotal int64
+	var lastSeen float64
+	if err := statsRow.Scan(&packetsTotal, &lastSeen); err != nil {
+		t.Fatalf("scan gateway_node_stats: %v", err)
+	}
+	if packetsTotal < 6 {
+		t.Fatalf("expected packets_total >= 6, got %d", packetsTotal)
+	}
+	if lastSeen <= 0 {
+		t.Fatalf("expected last_seen > 0")
+	}
+
+	viewRow := db.QueryRow(`SELECT packets_total, distinct_nodes FROM gateway_stats WHERE gateway_id = ?`, "!gateway")
+	var viewPackets, distinctNodes int64
+	if err := viewRow.Scan(&viewPackets, &distinctNodes); err != nil {
+		t.Fatalf("scan gateway_stats view: %v", err)
+	}
+	if viewPackets != packetsTotal {
+		t.Fatalf("expected packets_total %d, got %d", packetsTotal, viewPackets)
+	}
+	if distinctNodes < 1 {
+		t.Fatalf("expected at least 1 distinct node, got %d", distinctNodes)
+	}
+
+	neighborRow := db.QueryRow(`SELECT origin_node_id, neighbor_node_id FROM neighbor_history ORDER BY id DESC LIMIT 1`)
+	var originID, neighborID int64
+	if err := neighborRow.Scan(&originID, &neighborID); err != nil {
+		t.Fatalf("scan neighbor_history: %v", err)
+	}
+	if originID != 0x1234 || neighborID != 0x5678 {
+		t.Fatalf("unexpected neighbor entry origin=%d neighbor=%d", originID, neighborID)
 	}
 
 	textRow := db.QueryRow(`SELECT text, want_response, compressed FROM text_messages LIMIT 1`)
@@ -274,6 +366,51 @@ func buildNodeInfoData(t *testing.T) *meshtasticpb.Data {
 	return &meshtasticpb.Data{
 		Portnum: meshtasticpb.PortNum_NODEINFO_APP,
 		Payload: data,
+	}
+}
+
+func buildMapReportData(t *testing.T) *meshtasticpb.Data {
+	t.Helper()
+	report := &meshtasticpb.MapReport{
+		LongName:        "Gateway Node",
+		ShortName:       "GW",
+		Role:            meshtasticpb.Config_DeviceConfig_ROUTER,
+		HwModel:         meshtasticpb.HardwareModel_TBEAM,
+		FirmwareVersion: "2.1.0",
+		Region:          meshtasticpb.Config_LoRaConfig_EU_868,
+		ModemPreset:     meshtasticpb.Config_LoRaConfig_SHORT_FAST,
+	}
+	payload, err := proto.Marshal(report)
+	if err != nil {
+		t.Fatalf("marshal map report: %v", err)
+	}
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_MAP_REPORT_APP,
+		Payload: payload,
+	}
+}
+
+func buildNeighborInfoData(t *testing.T) *meshtasticpb.Data {
+	t.Helper()
+	neighborInfo := &meshtasticpb.NeighborInfo{
+		NodeId:                    0x1234,
+		NodeBroadcastIntervalSecs: 60,
+		Neighbors: []*meshtasticpb.Neighbor{
+			{
+				NodeId:                    0x5678,
+				Snr:                       9.5,
+				LastRxTime:                1111,
+				NodeBroadcastIntervalSecs: 30,
+			},
+		},
+	}
+	payload, err := proto.Marshal(neighborInfo)
+	if err != nil {
+		t.Fatalf("marshal neighbor info: %v", err)
+	}
+	return &meshtasticpb.Data{
+		Portnum: meshtasticpb.PortNum_NEIGHBORINFO_APP,
+		Payload: payload,
 	}
 }
 
