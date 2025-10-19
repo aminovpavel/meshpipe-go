@@ -554,19 +554,6 @@ func floatToTimestamp(value float64) *timestamppb.Timestamp {
 	return timestamppb.New(time.Unix(sec, nsec).UTC())
 }
 
-func int64ToUint32(v sql.NullInt64) uint32 {
-	if !v.Valid {
-		return 0
-	}
-	if v.Int64 < 0 {
-		return 0
-	}
-	if v.Int64 > math.MaxUint32 {
-		return math.MaxUint32
-	}
-	return uint32(v.Int64)
-}
-
 func max64(value int64, fallback int64) int64 {
 	if value < fallback {
 		return fallback

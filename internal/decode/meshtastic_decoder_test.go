@@ -148,7 +148,7 @@ func TestMapReportUpdatesNode(t *testing.T) {
 	report := &meshtasticpb.MapReport{
 		LongName:        "Relay",
 		ShortName:       "RL",
-		Role:            meshtasticpb.Config_DeviceConfig_REPEATER,
+		Role:            meshtasticpb.Config_DeviceConfig_ROUTER,
 		HwModel:         meshtasticpb.HardwareModel_TBEAM,
 		FirmwareVersion: "2.2.0",
 		Region:          meshtasticpb.Config_LoRaConfig_US,
@@ -172,8 +172,8 @@ func TestMapReportUpdatesNode(t *testing.T) {
 	if pkt.Node.LongName != "Relay" || pkt.Node.ShortName != "RL" {
 		t.Fatalf("unexpected names: long=%s short=%s", pkt.Node.LongName, pkt.Node.ShortName)
 	}
-	if pkt.Node.RoleName != "Repeater" {
-		t.Fatalf("expected role name Repeater, got %s", pkt.Node.RoleName)
+	if pkt.Node.RoleName != "Router" {
+		t.Fatalf("expected role name Router, got %s", pkt.Node.RoleName)
 	}
 	if pkt.Node.HWModelName != "Tbeam" {
 		t.Fatalf("expected hardware name Tbeam, got %s", pkt.Node.HWModelName)

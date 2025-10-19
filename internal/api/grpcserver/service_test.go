@@ -15,6 +15,7 @@ import (
 	"github.com/aminovpavel/meshpipe-go/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -22,6 +23,24 @@ import (
 )
 
 const bufConnSize = 1 << 20
+
+func waitForReady(ctx context.Context, conn *grpc.ClientConn) error {
+	for {
+		state := conn.GetState()
+		if state == connectivity.Idle {
+			conn.Connect()
+		}
+		if state == connectivity.Ready {
+			return nil
+		}
+		if !conn.WaitForStateChange(ctx, state) {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return fmt.Errorf("connection state %s without context error", state.String())
+		}
+	}
+}
 
 func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 	dbPath := t.TempDir() + "/meshpipe_test.db"
@@ -39,7 +58,7 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 	)
 	meshpipev1.RegisterMeshpipeDataServer(grpcServer, service)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	go func() {
@@ -53,9 +72,9 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		return lis.Dial()
 	}
 
-	conn, err := grpc.DialContext(
-		ctx,
-		"bufconn",
+	const target = "passthrough:///bufconn"
+	conn, err := grpc.NewClient(
+		target,
 		grpc.WithContextDialer(dialer),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -63,6 +82,9 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		t.Fatalf("dial bufconn: %v", err)
 	}
 	t.Cleanup(func() { _ = conn.Close() })
+	if err := waitForReady(ctx, conn); err != nil {
+		t.Fatalf("grpc conn not ready: %v", err)
+	}
 
 	client := meshpipev1.NewMeshpipeDataClient(conn)
 

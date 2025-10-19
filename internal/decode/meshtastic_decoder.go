@@ -34,7 +34,7 @@ type MeshtasticDecoder struct {
 const unknownGatewayID = "UNKNOWN_GATEWAY"
 
 var portDisplayNames = map[meshtasticpb.PortNum]string{
-	meshtasticpb.PortNum_UNKNOWN_APP:                 "Unknown",
+	meshtasticpb.PortNum(0):                          "Unknown",
 	meshtasticpb.PortNum_TEXT_MESSAGE_APP:            "Text message",
 	meshtasticpb.PortNum_TEXT_MESSAGE_COMPRESSED_APP: "Text message (compressed)",
 	meshtasticpb.PortNum_ALERT_APP:                   "Alert",
