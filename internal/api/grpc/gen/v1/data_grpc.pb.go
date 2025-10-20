@@ -19,26 +19,31 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MeshpipeData_GetDashboardStats_FullMethodName   = "/meshpipe.v1.MeshpipeData/GetDashboardStats"
-	MeshpipeData_ListPackets_FullMethodName         = "/meshpipe.v1.MeshpipeData/ListPackets"
-	MeshpipeData_StreamPackets_FullMethodName       = "/meshpipe.v1.MeshpipeData/StreamPackets"
-	MeshpipeData_ListNodes_FullMethodName           = "/meshpipe.v1.MeshpipeData/ListNodes"
-	MeshpipeData_GetNode_FullMethodName             = "/meshpipe.v1.MeshpipeData/GetNode"
-	MeshpipeData_GetGatewayStats_FullMethodName     = "/meshpipe.v1.MeshpipeData/GetGatewayStats"
-	MeshpipeData_ListLinks_FullMethodName           = "/meshpipe.v1.MeshpipeData/ListLinks"
-	MeshpipeData_ListTraceroutes_FullMethodName     = "/meshpipe.v1.MeshpipeData/ListTraceroutes"
-	MeshpipeData_ListRangeTests_FullMethodName      = "/meshpipe.v1.MeshpipeData/ListRangeTests"
-	MeshpipeData_ListStoreForward_FullMethodName    = "/meshpipe.v1.MeshpipeData/ListStoreForward"
-	MeshpipeData_ListPaxcounter_FullMethodName      = "/meshpipe.v1.MeshpipeData/ListPaxcounter"
-	MeshpipeData_ListNodeLocations_FullMethodName   = "/meshpipe.v1.MeshpipeData/ListNodeLocations"
-	MeshpipeData_GetChatWindow_FullMethodName       = "/meshpipe.v1.MeshpipeData/GetChatWindow"
-	MeshpipeData_GetNodeAnalytics_FullMethodName    = "/meshpipe.v1.MeshpipeData/GetNodeAnalytics"
-	MeshpipeData_GetGatewayOverview_FullMethodName  = "/meshpipe.v1.MeshpipeData/GetGatewayOverview"
-	MeshpipeData_GetAnalyticsSummary_FullMethodName = "/meshpipe.v1.MeshpipeData/GetAnalyticsSummary"
-	MeshpipeData_ListTracerouteHops_FullMethodName  = "/meshpipe.v1.MeshpipeData/ListTracerouteHops"
-	MeshpipeData_GetTracerouteGraph_FullMethodName  = "/meshpipe.v1.MeshpipeData/GetTracerouteGraph"
-	MeshpipeData_Healthz_FullMethodName             = "/meshpipe.v1.MeshpipeData/Healthz"
-	MeshpipeData_GetVersion_FullMethodName          = "/meshpipe.v1.MeshpipeData/GetVersion"
+	MeshpipeData_GetDashboardStats_FullMethodName        = "/meshpipe.v1.MeshpipeData/GetDashboardStats"
+	MeshpipeData_ListPackets_FullMethodName              = "/meshpipe.v1.MeshpipeData/ListPackets"
+	MeshpipeData_StreamPackets_FullMethodName            = "/meshpipe.v1.MeshpipeData/StreamPackets"
+	MeshpipeData_ListNodes_FullMethodName                = "/meshpipe.v1.MeshpipeData/ListNodes"
+	MeshpipeData_GetNode_FullMethodName                  = "/meshpipe.v1.MeshpipeData/GetNode"
+	MeshpipeData_GetGatewayStats_FullMethodName          = "/meshpipe.v1.MeshpipeData/GetGatewayStats"
+	MeshpipeData_ListLinks_FullMethodName                = "/meshpipe.v1.MeshpipeData/ListLinks"
+	MeshpipeData_ListTraceroutes_FullMethodName          = "/meshpipe.v1.MeshpipeData/ListTraceroutes"
+	MeshpipeData_ListRangeTests_FullMethodName           = "/meshpipe.v1.MeshpipeData/ListRangeTests"
+	MeshpipeData_ListStoreForward_FullMethodName         = "/meshpipe.v1.MeshpipeData/ListStoreForward"
+	MeshpipeData_ListPaxcounter_FullMethodName           = "/meshpipe.v1.MeshpipeData/ListPaxcounter"
+	MeshpipeData_ListNodeLocations_FullMethodName        = "/meshpipe.v1.MeshpipeData/ListNodeLocations"
+	MeshpipeData_GetChatWindow_FullMethodName            = "/meshpipe.v1.MeshpipeData/GetChatWindow"
+	MeshpipeData_GetNodeAnalytics_FullMethodName         = "/meshpipe.v1.MeshpipeData/GetNodeAnalytics"
+	MeshpipeData_GetGatewayOverview_FullMethodName       = "/meshpipe.v1.MeshpipeData/GetGatewayOverview"
+	MeshpipeData_GetAnalyticsSummary_FullMethodName      = "/meshpipe.v1.MeshpipeData/GetAnalyticsSummary"
+	MeshpipeData_ListTraceroutePackets_FullMethodName    = "/meshpipe.v1.MeshpipeData/ListTraceroutePackets"
+	MeshpipeData_GetTracerouteDetails_FullMethodName     = "/meshpipe.v1.MeshpipeData/GetTracerouteDetails"
+	MeshpipeData_ListTracerouteHops_FullMethodName       = "/meshpipe.v1.MeshpipeData/ListTracerouteHops"
+	MeshpipeData_GetTracerouteGraph_FullMethodName       = "/meshpipe.v1.MeshpipeData/GetTracerouteGraph"
+	MeshpipeData_ListNodeDirectReceptions_FullMethodName = "/meshpipe.v1.MeshpipeData/ListNodeDirectReceptions"
+	MeshpipeData_ListNodeNames_FullMethodName            = "/meshpipe.v1.MeshpipeData/ListNodeNames"
+	MeshpipeData_ListPrimaryChannels_FullMethodName      = "/meshpipe.v1.MeshpipeData/ListPrimaryChannels"
+	MeshpipeData_Healthz_FullMethodName                  = "/meshpipe.v1.MeshpipeData/Healthz"
+	MeshpipeData_GetVersion_FullMethodName               = "/meshpipe.v1.MeshpipeData/GetVersion"
 )
 
 // MeshpipeDataClient is the client API for MeshpipeData service.
@@ -61,8 +66,13 @@ type MeshpipeDataClient interface {
 	GetNodeAnalytics(ctx context.Context, in *GetNodeAnalyticsRequest, opts ...grpc.CallOption) (*GetNodeAnalyticsResponse, error)
 	GetGatewayOverview(ctx context.Context, in *GetGatewayOverviewRequest, opts ...grpc.CallOption) (*GetGatewayOverviewResponse, error)
 	GetAnalyticsSummary(ctx context.Context, in *GetAnalyticsSummaryRequest, opts ...grpc.CallOption) (*GetAnalyticsSummaryResponse, error)
+	ListTraceroutePackets(ctx context.Context, in *ListTraceroutePacketsRequest, opts ...grpc.CallOption) (*ListTraceroutePacketsResponse, error)
+	GetTracerouteDetails(ctx context.Context, in *GetTracerouteDetailsRequest, opts ...grpc.CallOption) (*GetTracerouteDetailsResponse, error)
 	ListTracerouteHops(ctx context.Context, in *ListTracerouteHopsRequest, opts ...grpc.CallOption) (*ListTracerouteHopsResponse, error)
 	GetTracerouteGraph(ctx context.Context, in *TracerouteGraphRequest, opts ...grpc.CallOption) (*TracerouteGraphResponse, error)
+	ListNodeDirectReceptions(ctx context.Context, in *ListNodeDirectReceptionsRequest, opts ...grpc.CallOption) (*ListNodeDirectReceptionsResponse, error)
+	ListNodeNames(ctx context.Context, in *ListNodeNamesRequest, opts ...grpc.CallOption) (*ListNodeNamesResponse, error)
+	ListPrimaryChannels(ctx context.Context, in *ListPrimaryChannelsRequest, opts ...grpc.CallOption) (*ListPrimaryChannelsResponse, error)
 	Healthz(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*VersionResponse, error)
 }
@@ -244,6 +254,26 @@ func (c *meshpipeDataClient) GetAnalyticsSummary(ctx context.Context, in *GetAna
 	return out, nil
 }
 
+func (c *meshpipeDataClient) ListTraceroutePackets(ctx context.Context, in *ListTraceroutePacketsRequest, opts ...grpc.CallOption) (*ListTraceroutePacketsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTraceroutePacketsResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_ListTraceroutePackets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) GetTracerouteDetails(ctx context.Context, in *GetTracerouteDetailsRequest, opts ...grpc.CallOption) (*GetTracerouteDetailsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetTracerouteDetailsResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_GetTracerouteDetails_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *meshpipeDataClient) ListTracerouteHops(ctx context.Context, in *ListTracerouteHopsRequest, opts ...grpc.CallOption) (*ListTracerouteHopsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListTracerouteHopsResponse)
@@ -258,6 +288,36 @@ func (c *meshpipeDataClient) GetTracerouteGraph(ctx context.Context, in *Tracero
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TracerouteGraphResponse)
 	err := c.cc.Invoke(ctx, MeshpipeData_GetTracerouteGraph_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) ListNodeDirectReceptions(ctx context.Context, in *ListNodeDirectReceptionsRequest, opts ...grpc.CallOption) (*ListNodeDirectReceptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListNodeDirectReceptionsResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_ListNodeDirectReceptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) ListNodeNames(ctx context.Context, in *ListNodeNamesRequest, opts ...grpc.CallOption) (*ListNodeNamesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListNodeNamesResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_ListNodeNames_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) ListPrimaryChannels(ctx context.Context, in *ListPrimaryChannelsRequest, opts ...grpc.CallOption) (*ListPrimaryChannelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPrimaryChannelsResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_ListPrimaryChannels_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -304,8 +364,13 @@ type MeshpipeDataServer interface {
 	GetNodeAnalytics(context.Context, *GetNodeAnalyticsRequest) (*GetNodeAnalyticsResponse, error)
 	GetGatewayOverview(context.Context, *GetGatewayOverviewRequest) (*GetGatewayOverviewResponse, error)
 	GetAnalyticsSummary(context.Context, *GetAnalyticsSummaryRequest) (*GetAnalyticsSummaryResponse, error)
+	ListTraceroutePackets(context.Context, *ListTraceroutePacketsRequest) (*ListTraceroutePacketsResponse, error)
+	GetTracerouteDetails(context.Context, *GetTracerouteDetailsRequest) (*GetTracerouteDetailsResponse, error)
 	ListTracerouteHops(context.Context, *ListTracerouteHopsRequest) (*ListTracerouteHopsResponse, error)
 	GetTracerouteGraph(context.Context, *TracerouteGraphRequest) (*TracerouteGraphResponse, error)
+	ListNodeDirectReceptions(context.Context, *ListNodeDirectReceptionsRequest) (*ListNodeDirectReceptionsResponse, error)
+	ListNodeNames(context.Context, *ListNodeNamesRequest) (*ListNodeNamesResponse, error)
+	ListPrimaryChannels(context.Context, *ListPrimaryChannelsRequest) (*ListPrimaryChannelsResponse, error)
 	Healthz(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
 	GetVersion(context.Context, *GetVersionRequest) (*VersionResponse, error)
 	mustEmbedUnimplementedMeshpipeDataServer()
@@ -366,11 +431,26 @@ func (UnimplementedMeshpipeDataServer) GetGatewayOverview(context.Context, *GetG
 func (UnimplementedMeshpipeDataServer) GetAnalyticsSummary(context.Context, *GetAnalyticsSummaryRequest) (*GetAnalyticsSummaryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAnalyticsSummary not implemented")
 }
+func (UnimplementedMeshpipeDataServer) ListTraceroutePackets(context.Context, *ListTraceroutePacketsRequest) (*ListTraceroutePacketsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListTraceroutePackets not implemented")
+}
+func (UnimplementedMeshpipeDataServer) GetTracerouteDetails(context.Context, *GetTracerouteDetailsRequest) (*GetTracerouteDetailsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTracerouteDetails not implemented")
+}
 func (UnimplementedMeshpipeDataServer) ListTracerouteHops(context.Context, *ListTracerouteHopsRequest) (*ListTracerouteHopsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListTracerouteHops not implemented")
 }
 func (UnimplementedMeshpipeDataServer) GetTracerouteGraph(context.Context, *TracerouteGraphRequest) (*TracerouteGraphResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTracerouteGraph not implemented")
+}
+func (UnimplementedMeshpipeDataServer) ListNodeDirectReceptions(context.Context, *ListNodeDirectReceptionsRequest) (*ListNodeDirectReceptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListNodeDirectReceptions not implemented")
+}
+func (UnimplementedMeshpipeDataServer) ListNodeNames(context.Context, *ListNodeNamesRequest) (*ListNodeNamesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListNodeNames not implemented")
+}
+func (UnimplementedMeshpipeDataServer) ListPrimaryChannels(context.Context, *ListPrimaryChannelsRequest) (*ListPrimaryChannelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListPrimaryChannels not implemented")
 }
 func (UnimplementedMeshpipeDataServer) Healthz(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Healthz not implemented")
@@ -680,6 +760,42 @@ func _MeshpipeData_GetAnalyticsSummary_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MeshpipeData_ListTraceroutePackets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTraceroutePacketsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).ListTraceroutePackets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_ListTraceroutePackets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).ListTraceroutePackets(ctx, req.(*ListTraceroutePacketsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_GetTracerouteDetails_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTracerouteDetailsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).GetTracerouteDetails(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_GetTracerouteDetails_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).GetTracerouteDetails(ctx, req.(*GetTracerouteDetailsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MeshpipeData_ListTracerouteHops_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListTracerouteHopsRequest)
 	if err := dec(in); err != nil {
@@ -712,6 +828,60 @@ func _MeshpipeData_GetTracerouteGraph_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MeshpipeDataServer).GetTracerouteGraph(ctx, req.(*TracerouteGraphRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_ListNodeDirectReceptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListNodeDirectReceptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).ListNodeDirectReceptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_ListNodeDirectReceptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).ListNodeDirectReceptions(ctx, req.(*ListNodeDirectReceptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_ListNodeNames_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListNodeNamesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).ListNodeNames(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_ListNodeNames_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).ListNodeNames(ctx, req.(*ListNodeNamesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_ListPrimaryChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPrimaryChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).ListPrimaryChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_ListPrimaryChannels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).ListPrimaryChannels(ctx, req.(*ListPrimaryChannelsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -820,12 +990,32 @@ var MeshpipeData_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MeshpipeData_GetAnalyticsSummary_Handler,
 		},
 		{
+			MethodName: "ListTraceroutePackets",
+			Handler:    _MeshpipeData_ListTraceroutePackets_Handler,
+		},
+		{
+			MethodName: "GetTracerouteDetails",
+			Handler:    _MeshpipeData_GetTracerouteDetails_Handler,
+		},
+		{
 			MethodName: "ListTracerouteHops",
 			Handler:    _MeshpipeData_ListTracerouteHops_Handler,
 		},
 		{
 			MethodName: "GetTracerouteGraph",
 			Handler:    _MeshpipeData_GetTracerouteGraph_Handler,
+		},
+		{
+			MethodName: "ListNodeDirectReceptions",
+			Handler:    _MeshpipeData_ListNodeDirectReceptions_Handler,
+		},
+		{
+			MethodName: "ListNodeNames",
+			Handler:    _MeshpipeData_ListNodeNames_Handler,
+		},
+		{
+			MethodName: "ListPrimaryChannels",
+			Handler:    _MeshpipeData_ListPrimaryChannels_Handler,
 		},
 		{
 			MethodName: "Healthz",

@@ -447,6 +447,171 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 		}
 	})
 
+	t.Run("traceroute packets rpc", func(t *testing.T) {
+		initial, err := client.ListTraceroutePackets(authCtx, &meshpipev1.ListTraceroutePacketsRequest{
+			Limit: 10,
+		})
+		if err != nil {
+			t.Fatalf("ListTraceroutePackets initial: %v", err)
+		}
+		if initial.GetTotalCount() != 1 {
+			t.Fatalf("expected single traceroute packet in seed, got %d", initial.GetTotalCount())
+		}
+		if len(initial.GetPackets()) != 1 {
+			t.Fatalf("expected packet slice of length 1, got %d", len(initial.GetPackets()))
+		}
+		if initial.GetPackets()[0].GetGatewayId() != "gw-1" {
+			t.Fatalf("unexpected gateway id for seed traceroute: %q", initial.GetPackets()[0].GetGatewayId())
+		}
+
+		filtered, err := client.ListTraceroutePackets(authCtx, &meshpipev1.ListTraceroutePacketsRequest{
+			Filter: &meshpipev1.TraceroutePacketFilter{
+				FromNodeId:                0x1234,
+				ProcessedSuccessfullyOnly: true,
+			},
+			Limit: 5,
+		})
+		if err != nil {
+			t.Fatalf("ListTraceroutePackets filtered: %v", err)
+		}
+		if filtered.GetTotalCount() != 1 || len(filtered.GetPackets()) != 1 {
+			t.Fatalf("filtered traceroute mismatch: %+v", filtered)
+		}
+
+		extraID := int64(5)
+		extraTS := toSeconds(time.Now().UTC())
+		extraPayload := []byte{0x05, 0xBE, 0xEF, 0x99}
+
+		if _, err := db.Exec(`INSERT INTO packet_history (
+            id, timestamp, topic, from_node_id, to_node_id, portnum, portnum_name, gateway_id, channel_id, channel_name,
+            mesh_packet_id, rssi, snr, hop_limit, hop_start, payload_length, raw_payload, processed_successfully, message_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			extraID,
+			extraTS,
+			fmt.Sprintf("msh/test/%d", extraID),
+			0x1234,
+			0x5678,
+			70,
+			"TRACEROUTE_APP",
+			"gw-2",
+			"LongFast",
+			"LongFast",
+			100+extraID,
+			-55,
+			9.1,
+			1,
+			1,
+			len(extraPayload),
+			extraPayload,
+			boolToInt(true),
+			"tr",
+		); err != nil {
+			t.Fatalf("insert extra traceroute packet: %v", err)
+		}
+
+		if _, err := db.Exec(`INSERT INTO traceroute_hops (
+            packet_id, gateway_id, request_id, origin_node_id, destination_node_id, direction, hop_index, hop_node_id, snr, received_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			extraID, "gw-2", 777, 0x1234, 0x5678, "towards", 0, 0x1234, 9.0, extraTS); err != nil {
+			t.Fatalf("insert traceroute hop 0: %v", err)
+		}
+		if _, err := db.Exec(`INSERT INTO traceroute_hops (
+            packet_id, gateway_id, request_id, origin_node_id, destination_node_id, direction, hop_index, hop_node_id, snr, received_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			extraID, "gw-2", 777, 0x1234, 0x5678, "towards", 1, 0x5678, 8.6, extraTS); err != nil {
+			t.Fatalf("insert traceroute hop 1: %v", err)
+		}
+
+		pageOne, err := client.ListTraceroutePackets(authCtx, &meshpipev1.ListTraceroutePacketsRequest{
+			Limit:    1,
+			OrderBy:  "timestamp",
+			OrderDir: "desc",
+		})
+		if err != nil {
+			t.Fatalf("ListTraceroutePackets page one: %v", err)
+		}
+		if pageOne.GetTotalCount() != 2 || len(pageOne.GetPackets()) != 1 {
+			t.Fatalf("unexpected pagination totals after insert: %+v", pageOne)
+		}
+		if pageOne.GetPackets()[0].GetId() != uint64(extraID) {
+			t.Fatalf("expected newest traceroute id %d, got %d", extraID, pageOne.GetPackets()[0].GetId())
+		}
+		if !pageOne.GetHasMore() {
+			t.Fatalf("expected has_more on first page with limit 1")
+		}
+
+		pageTwo, err := client.ListTraceroutePackets(authCtx, &meshpipev1.ListTraceroutePacketsRequest{
+			Limit:    1,
+			Offset:   1,
+			OrderBy:  "timestamp",
+			OrderDir: "desc",
+		})
+		if err != nil {
+			t.Fatalf("ListTraceroutePackets page two: %v", err)
+		}
+		// Note: hasMore should be false for the last page.
+		if pageTwo.GetTotalCount() != 2 || len(pageTwo.GetPackets()) != 1 {
+			t.Fatalf("unexpected second page stats: %+v", pageTwo)
+		}
+		if pageTwo.GetPackets()[0].GetId() != 4 {
+			t.Fatalf("expected original traceroute id 4 on second page, got %d", pageTwo.GetPackets()[0].GetId())
+		}
+		if pageTwo.GetHasMore() {
+			t.Fatalf("did not expect has_more on final page")
+		}
+
+		details, err := client.GetTracerouteDetails(authCtx, &meshpipev1.GetTracerouteDetailsRequest{PacketId: uint64(extraID)})
+		if err != nil {
+			t.Fatalf("GetTracerouteDetails extra: %v", err)
+		}
+		if details.GetPacket().GetHopStart() != 1 || details.GetPacket().GetHopLimit() != 1 {
+			t.Fatalf("expected hop start/limit 1 for extra packet, got %d/%d", details.GetPacket().GetHopStart(), details.GetPacket().GetHopLimit())
+		}
+		if len(details.GetHops()) != 2 {
+			t.Fatalf("expected two hops in details, got %d", len(details.GetHops()))
+		}
+
+		direct, err := client.ListNodeDirectReceptions(authCtx, &meshpipev1.ListNodeDirectReceptionsRequest{
+			NodeId:    0x1234,
+			Direction: "sent",
+			Limit:     5,
+		})
+		if err != nil {
+			t.Fatalf("ListNodeDirectReceptions: %v", err)
+		}
+		if len(direct.GetReceptions()) == 0 {
+			t.Fatalf("expected at least one direct reception after inserting traceroute packet")
+		}
+		if direct.GetReceptions()[0].GetPacketId() != uint64(extraID) {
+			t.Fatalf("unexpected packet id in direct reception: %+v", direct.GetReceptions()[0])
+		}
+
+		names, err := client.ListNodeNames(authCtx, &meshpipev1.ListNodeNamesRequest{
+			NodeIds: []uint32{0x1234, 0x5678},
+		})
+		if err != nil {
+			t.Fatalf("ListNodeNames: %v", err)
+		}
+		if len(names.GetEntries()) != 2 {
+			t.Fatalf("expected two node name entries, got %d", len(names.GetEntries()))
+		}
+
+		channels, err := client.ListPrimaryChannels(authCtx, &meshpipev1.ListPrimaryChannelsRequest{})
+		if err != nil {
+			t.Fatalf("ListPrimaryChannels: %v", err)
+		}
+		var foundLongFast bool
+		for _, ch := range channels.GetChannels() {
+			if ch == "LongFast" {
+				foundLongFast = true
+				break
+			}
+		}
+		if !foundLongFast {
+			t.Fatalf("expected LongFast in primary channels: %v", channels.GetChannels())
+		}
+	})
+
 	t.Run("module tables", func(t *testing.T) {
 		rt, err := client.ListRangeTests(authCtx, &meshpipev1.ListRangeTestsRequest{})
 		if err != nil {
@@ -600,7 +765,7 @@ func seedSampleDatabase(t *testing.T, path string) (*sql.DB, seededTimestamps) {
 	insertPacket(1, ts.Recent, 0x1234, 0xFFFF, 1, "Text message", "t", true, -70, 9.5)
 	insertPacket(2, ts.Old, 0x5678, 0xFFFF, 4, "Telemetry", "m", false, -80, 7.0)
 	insertPacket(3, ts.Range, 0x1234, 0x5678, 10, "Range test", "r", true, -65, 10.2)
-	insertPacket(4, ts.Trace, 0x1234, 0x5678, 11, "Traceroute", "tr", true, -60, 8.8)
+	insertPacket(4, ts.Trace, 0x1234, 0x5678, 70, "TRACEROUTE_APP", "tr", true, -60, 8.8)
 
 	exec(`INSERT INTO text_messages (packet_id, text, want_response, dest, source, request_id, reply_id, emoji, bitfield, compressed)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

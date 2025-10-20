@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -13,6 +14,13 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+func escapeLike(value string) string {
+	value = strings.ReplaceAll(value, "\\", "\\\\")
+	value = strings.ReplaceAll(value, "%", "\\%")
+	value = strings.ReplaceAll(value, "_", "\\_")
+	return value
+}
 
 func (s *service) queryPackets(ctx context.Context, req *meshpipev1.ListPacketsRequest) ([]*meshpipev1.Packet, string, error) {
 	filter := req.GetFilter()
@@ -856,6 +864,521 @@ func (s *service) queryTraceroutes(ctx context.Context, req *meshpipev1.ListTrac
 		Paths:      paths,
 		NextCursor: nextCursor,
 	}, nil
+}
+
+func (s *service) queryTraceroutePackets(ctx context.Context, req *meshpipev1.ListTraceroutePacketsRequest) (*meshpipev1.ListTraceroutePacketsResponse, error) {
+	if req == nil {
+		req = &meshpipev1.ListTraceroutePacketsRequest{}
+	}
+
+	if req.GetGroupPackets() {
+		return nil, status.Errorf(codes.Unimplemented, "group_packets handling not yet implemented")
+	}
+
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > s.maxPageSize {
+		limit = s.maxPageSize
+	}
+	offset := int(req.GetOffset())
+	if offset < 0 {
+		offset = 0
+	}
+
+	where := []string{"portnum_name = 'TRACEROUTE_APP'"}
+	args := make([]any, 0, 10)
+
+	if filter := req.GetFilter(); filter != nil {
+		if ts := filter.GetStartTime(); ts != nil {
+			where = append(where, "timestamp >= ?")
+			args = append(args, float64(ts.AsTime().UnixNano())/1e9)
+		}
+		if ts := filter.GetEndTime(); ts != nil {
+			where = append(where, "timestamp <= ?")
+			args = append(args, float64(ts.AsTime().UnixNano())/1e9)
+		}
+		if v := filter.GetFromNodeId(); v != 0 {
+			where = append(where, "from_node_id = ?")
+			args = append(args, v)
+		}
+		if v := filter.GetToNodeId(); v != 0 {
+			where = append(where, "to_node_id = ?")
+			args = append(args, v)
+		}
+		if v := strings.TrimSpace(filter.GetGatewayId()); v != "" {
+			where = append(where, "gateway_id = ?")
+			args = append(args, v)
+		}
+		if v := strings.TrimSpace(filter.GetPrimaryChannel()); v != "" {
+			where = append(where, "channel_id = ?")
+			args = append(args, v)
+		}
+		if filter.GetProcessedSuccessfullyOnly() {
+			where = append(where, "processed_successfully = 1")
+		}
+		if search := strings.TrimSpace(filter.GetSearch()); search != "" {
+			escaped := escapeLike(search)
+			like := "%" + escaped + "%"
+			where = append(where, "(gateway_id LIKE ? ESCAPE '\\' OR CAST(from_node_id AS TEXT) LIKE ? ESCAPE '\\' OR CAST(to_node_id AS TEXT) LIKE ? ESCAPE '\\')")
+			args = append(args, like, like, like)
+		}
+	}
+
+	whereClause := strings.Join(where, " AND ")
+
+	orderBy := "timestamp"
+	switch strings.ToLower(strings.TrimSpace(req.GetOrderBy())) {
+	case "timestamp", "id", "rssi", "snr":
+		orderBy = req.GetOrderBy()
+	case "hop_count":
+		orderBy = "(hop_start - hop_limit)"
+	}
+
+	orderDir := "DESC"
+	if strings.EqualFold(req.GetOrderDir(), "asc") {
+		orderDir = "ASC"
+	}
+
+	totalQuery := fmt.Sprintf("SELECT COUNT(*) FROM packet_history WHERE %s", whereClause)
+	var totalCount sql.NullInt64
+	if err := s.db.QueryRowContext(ctx, totalQuery, args...).Scan(&totalCount); err != nil {
+		return nil, status.Errorf(codes.Internal, "count traceroute packets: %v", err)
+	}
+
+	queryArgs := append([]any(nil), args...)
+	queryArgs = append(queryArgs, limit, offset)
+
+	query := fmt.Sprintf(`
+        SELECT
+            id,
+            timestamp,
+            from_node_id,
+            to_node_id,
+            gateway_id,
+            channel_id,
+            hop_start,
+            hop_limit,
+            rssi,
+            snr,
+            mesh_packet_id,
+            processed_successfully,
+            payload_length,
+            raw_payload
+        FROM packet_history
+        WHERE %s
+        ORDER BY %s %s
+        LIMIT ? OFFSET ?`, whereClause, orderBy, orderDir)
+
+	rows, err := s.db.QueryContext(ctx, query, queryArgs...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query traceroute packets: %v", err)
+	}
+	defer rows.Close()
+
+	packets := make([]*meshpipev1.TraceroutePacket, 0, limit)
+	for rows.Next() {
+		var (
+			id         sql.NullInt64
+			ts         sql.NullFloat64
+			fromID     sql.NullInt64
+			toID       sql.NullInt64
+			gateway    sql.NullString
+			channel    sql.NullString
+			hopStart   sql.NullInt64
+			hopLimit   sql.NullInt64
+			rssi       sql.NullInt64
+			snr        sql.NullFloat64
+			meshID     sql.NullInt64
+			success    sql.NullInt64
+			payloadLen sql.NullInt64
+			rawPayload []byte
+		)
+
+		if err := rows.Scan(&id, &ts, &fromID, &toID, &gateway, &channel, &hopStart, &hopLimit, &rssi, &snr, &meshID, &success, &payloadLen, &rawPayload); err != nil {
+			return nil, status.Errorf(codes.Internal, "scan traceroute packet: %v", err)
+		}
+
+		hopCount := int32(0)
+		if hopStart.Valid && hopLimit.Valid {
+			hopCount = int32(hopStart.Int64 - hopLimit.Int64)
+		}
+
+		var (
+			rssiVal int32
+			snrVal  float64
+			hasRssi = rssi.Valid
+			hasSnr  = snr.Valid
+		)
+
+		if hasRssi {
+			rssiVal = int32(rssi.Int64)
+		}
+		if hasSnr {
+			snrVal = snr.Float64
+		}
+
+		gatewayCount := uint32(0)
+		if gateway.String != "" {
+			gatewayCount = 1
+		}
+
+		pkt := &meshpipev1.TraceroutePacket{
+			Id:                    uint64FromNull(id),
+			Timestamp:             toTimestamp(ts),
+			FromNodeId:            uint32FromNull(fromID),
+			ToNodeId:              uint32FromNull(toID),
+			GatewayId:             gateway.String,
+			ChannelId:             channel.String,
+			HopStart:              int32FromNull(hopStart),
+			HopLimit:              int32FromNull(hopLimit),
+			HopCount:              hopCount,
+			Rssi:                  rssiVal,
+			Snr:                   snrVal,
+			MeshPacketId:          uint32FromNull(meshID),
+			ProcessedSuccessfully: success.Valid && success.Int64 != 0,
+			PayloadLength:         uint32(max64(payloadLen.Int64, 0)),
+			ReceptionCount:        1,
+			GatewayCount:          gatewayCount,
+			RawPayload:            append([]byte(nil), rawPayload...),
+			IsGrouped:             false,
+		}
+
+		if hasRssi {
+			pkt.MinRssi = rssiVal
+			pkt.MaxRssi = rssiVal
+		}
+		if hasSnr {
+			pkt.MinSnr = snrVal
+			pkt.MaxSnr = snrVal
+		}
+
+		packets = append(packets, pkt)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, status.Errorf(codes.Internal, "iterate traceroute packets: %v", err)
+	}
+
+	hasMore := offset+len(packets) < int(totalCount.Int64)
+
+	return &meshpipev1.ListTraceroutePacketsResponse{
+		Packets:    packets,
+		TotalCount: uint64(max64(totalCount.Int64, 0)),
+		Limit:      uint32(limit),
+		Offset:     uint32(offset),
+		IsGrouped:  false,
+		HasMore:    hasMore,
+	}, nil
+}
+
+func (s *service) queryTracerouteDetails(ctx context.Context, req *meshpipev1.GetTracerouteDetailsRequest) (*meshpipev1.GetTracerouteDetailsResponse, error) {
+	if req == nil || req.GetPacketId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "packet_id is required")
+	}
+
+	const packetQuery = `
+        SELECT
+            id,
+            timestamp,
+            from_node_id,
+            to_node_id,
+            gateway_id,
+            channel_id,
+            hop_start,
+            hop_limit,
+            rssi,
+            snr,
+            mesh_packet_id,
+            processed_successfully,
+            payload_length,
+            raw_payload
+        FROM packet_history
+        WHERE id = ? AND portnum_name = 'TRACEROUTE_APP'
+    `
+
+	var (
+		id         sql.NullInt64
+		ts         sql.NullFloat64
+		fromID     sql.NullInt64
+		toID       sql.NullInt64
+		gateway    sql.NullString
+		channel    sql.NullString
+		hopStart   sql.NullInt64
+		hopLimit   sql.NullInt64
+		rssi       sql.NullInt64
+		snr        sql.NullFloat64
+		meshID     sql.NullInt64
+		success    sql.NullInt64
+		payloadLen sql.NullInt64
+		rawPayload []byte
+	)
+
+	if err := s.db.QueryRowContext(ctx, packetQuery, req.GetPacketId()).Scan(&id, &ts, &fromID, &toID, &gateway, &channel, &hopStart, &hopLimit, &rssi, &snr, &meshID, &success, &payloadLen, &rawPayload); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Error(codes.NotFound, "packet not found")
+		}
+		return nil, status.Errorf(codes.Internal, "get traceroute details: %v", err)
+	}
+
+	hopCount := int32(0)
+	if hopStart.Valid && hopLimit.Valid {
+		hopCount = int32(hopStart.Int64 - hopLimit.Int64)
+	}
+
+	var (
+		rssiVal int32
+		snrVal  float64
+		hasRssi = rssi.Valid
+		hasSnr  = snr.Valid
+	)
+
+	if hasRssi {
+		rssiVal = int32(rssi.Int64)
+	}
+	if hasSnr {
+		snrVal = snr.Float64
+	}
+
+	gatewayCount := uint32(0)
+	if gateway.String != "" {
+		gatewayCount = 1
+	}
+
+	packet := &meshpipev1.TraceroutePacket{
+		Id:                    uint64FromNull(id),
+		Timestamp:             toTimestamp(ts),
+		FromNodeId:            uint32FromNull(fromID),
+		ToNodeId:              uint32FromNull(toID),
+		GatewayId:             gateway.String,
+		ChannelId:             channel.String,
+		HopStart:              int32FromNull(hopStart),
+		HopLimit:              int32FromNull(hopLimit),
+		HopCount:              hopCount,
+		Rssi:                  rssiVal,
+		Snr:                   snrVal,
+		MeshPacketId:          uint32FromNull(meshID),
+		ProcessedSuccessfully: success.Valid && success.Int64 != 0,
+		PayloadLength:         uint32(max64(payloadLen.Int64, 0)),
+		ReceptionCount:        1,
+		GatewayCount:          gatewayCount,
+		RawPayload:            append([]byte(nil), rawPayload...),
+		IsGrouped:             false,
+	}
+
+	if hasRssi {
+		packet.MinRssi = rssiVal
+		packet.MaxRssi = rssiVal
+	}
+	if hasSnr {
+		packet.MinSnr = snrVal
+		packet.MaxSnr = snrVal
+	}
+
+	const hopsQuery = `
+        SELECT id, packet_id, origin_node_id, destination_node_id, gateway_id, direction, hop_index, hop_node_id, snr, received_at
+        FROM traceroute_hops
+        WHERE packet_id = ?
+        ORDER BY hop_index ASC, id ASC
+    `
+
+	hopRows, err := s.db.QueryContext(ctx, hopsQuery, req.GetPacketId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query traceroute hops: %v", err)
+	}
+	defer hopRows.Close()
+
+	var hops []*meshpipev1.TracerouteHop
+	for hopRows.Next() {
+		var (
+			hopID     sql.NullInt64
+			packetID  sql.NullInt64
+			origin    sql.NullInt64
+			dest      sql.NullInt64
+			gateway   sql.NullString
+			direction sql.NullString
+			hopIndex  sql.NullInt64
+			hopNode   sql.NullInt64
+			snr       sql.NullFloat64
+			received  sql.NullFloat64
+		)
+		if err := hopRows.Scan(&hopID, &packetID, &origin, &dest, &gateway, &direction, &hopIndex, &hopNode, &snr, &received); err != nil {
+			return nil, status.Errorf(codes.Internal, "scan traceroute hop: %v", err)
+		}
+		hops = append(hops, &meshpipev1.TracerouteHop{
+			Id:                uint64FromNull(hopID),
+			PacketId:          uint64FromNull(packetID),
+			OriginNodeId:      uint32FromNull(origin),
+			DestinationNodeId: uint32FromNull(dest),
+			GatewayId:         gateway.String,
+			Direction:         direction.String,
+			HopIndex:          uint32FromNull(hopIndex),
+			HopNodeId:         uint32FromNull(hopNode),
+			Snr:               snr.Float64,
+			ReceivedAt:        toTimestamp(received),
+		})
+	}
+	if err := hopRows.Err(); err != nil {
+		return nil, status.Errorf(codes.Internal, "iterate traceroute hops: %v", err)
+	}
+
+	return &meshpipev1.GetTracerouteDetailsResponse{Packet: packet, Hops: hops}, nil
+}
+
+func (s *service) queryNodeDirectReceptions(ctx context.Context, req *meshpipev1.ListNodeDirectReceptionsRequest) (*meshpipev1.ListNodeDirectReceptionsResponse, error) {
+	if req == nil || req.GetNodeId() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "node_id is required")
+	}
+
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 500
+	}
+	if limit > s.maxPageSize {
+		limit = s.maxPageSize
+	}
+
+	direction := strings.ToLower(strings.TrimSpace(req.GetDirection()))
+	if direction == "" {
+		direction = "received"
+	}
+
+	var (
+		where string
+		args  []any
+	)
+
+	switch direction {
+	case "sent":
+		where = "from_node_id = ? AND hop_start IS NOT NULL AND hop_limit IS NOT NULL AND (hop_start - hop_limit) = 0"
+		args = []any{req.GetNodeId()}
+	default:
+		where = "gateway_id = ? AND hop_start IS NOT NULL AND hop_limit IS NOT NULL AND (hop_start - hop_limit) = 0"
+		args = []any{fmt.Sprintf("!%08x", req.GetNodeId())}
+	}
+
+	query := fmt.Sprintf(`
+        SELECT id, timestamp, from_node_id, to_node_id, gateway_id, snr, rssi
+        FROM packet_history
+        WHERE %s
+        ORDER BY timestamp DESC
+        LIMIT ?
+    `, where)
+
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query direct receptions: %v", err)
+	}
+	defer rows.Close()
+
+	receptions := make([]*meshpipev1.NodeDirectReception, 0, limit)
+	for rows.Next() {
+		var (
+			packetID sql.NullInt64
+			ts       sql.NullFloat64
+			fromID   sql.NullInt64
+			toID     sql.NullInt64
+			gateway  sql.NullString
+			snr      sql.NullFloat64
+			rssi     sql.NullInt64
+		)
+		if err := rows.Scan(&packetID, &ts, &fromID, &toID, &gateway, &snr, &rssi); err != nil {
+			return nil, status.Errorf(codes.Internal, "scan direct reception: %v", err)
+		}
+		receptions = append(receptions, &meshpipev1.NodeDirectReception{
+			PacketId:          uint64FromNull(packetID),
+			OriginNodeId:      uint32FromNull(fromID),
+			DestinationNodeId: uint32FromNull(toID),
+			GatewayId:         gateway.String,
+			Snr:               snr.Float64,
+			Rssi:              int32(rssi.Int64),
+			Timestamp:         toTimestamp(ts),
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, status.Errorf(codes.Internal, "iterate direct receptions: %v", err)
+	}
+
+	return &meshpipev1.ListNodeDirectReceptionsResponse{Receptions: receptions}, nil
+}
+
+func (s *service) queryNodeNames(ctx context.Context, req *meshpipev1.ListNodeNamesRequest) (*meshpipev1.ListNodeNamesResponse, error) {
+	ids := req.GetNodeIds()
+	if len(ids) == 0 {
+		return &meshpipev1.ListNodeNamesResponse{}, nil
+	}
+
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+        SELECT node_id, long_name, short_name
+        FROM node_info
+        WHERE node_id IN (%s)
+    `, strings.Join(placeholders, ","))
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query node names: %v", err)
+	}
+	defer rows.Close()
+
+	entries := make([]*meshpipev1.NodeNameEntry, 0, len(ids))
+	for rows.Next() {
+		var (
+			nodeID    sql.NullInt64
+			longName  sql.NullString
+			shortName sql.NullString
+		)
+		if err := rows.Scan(&nodeID, &longName, &shortName); err != nil {
+			return nil, status.Errorf(codes.Internal, "scan node name: %v", err)
+		}
+		entries = append(entries, &meshpipev1.NodeNameEntry{
+			NodeId:      uint32FromNull(nodeID),
+			DisplayName: longName.String,
+			ShortName:   shortName.String,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, status.Errorf(codes.Internal, "iterate node names: %v", err)
+	}
+
+	return &meshpipev1.ListNodeNamesResponse{Entries: entries}, nil
+}
+
+func (s *service) queryPrimaryChannels(ctx context.Context, _ *meshpipev1.ListPrimaryChannelsRequest) (*meshpipev1.ListPrimaryChannelsResponse, error) {
+	rows, err := s.db.QueryContext(ctx, `
+        SELECT DISTINCT primary_channel
+        FROM node_info
+        WHERE primary_channel IS NOT NULL AND TRIM(primary_channel) != ''
+        ORDER BY primary_channel
+    `)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "query primary channels: %v", err)
+	}
+	defer rows.Close()
+
+	var channels []string
+	for rows.Next() {
+		var ch sql.NullString
+		if err := rows.Scan(&ch); err != nil {
+			return nil, status.Errorf(codes.Internal, "scan primary channel: %v", err)
+		}
+		if ch.Valid {
+			channels = append(channels, ch.String)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, status.Errorf(codes.Internal, "iterate primary channels: %v", err)
+	}
+
+	return &meshpipev1.ListPrimaryChannelsResponse{Channels: channels}, nil
 }
 
 func (s *service) queryRangeTests(ctx context.Context, req *meshpipev1.ListRangeTestsRequest) (*meshpipev1.ListRangeTestsResponse, error) {

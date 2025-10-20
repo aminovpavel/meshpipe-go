@@ -488,6 +488,14 @@ func (s *service) ListTraceroutes(ctx context.Context, req *meshpipev1.ListTrace
 	return response, nil
 }
 
+func (s *service) ListTraceroutePackets(ctx context.Context, req *meshpipev1.ListTraceroutePacketsRequest) (*meshpipev1.ListTraceroutePacketsResponse, error) {
+	return s.queryTraceroutePackets(ctx, req)
+}
+
+func (s *service) GetTracerouteDetails(ctx context.Context, req *meshpipev1.GetTracerouteDetailsRequest) (*meshpipev1.GetTracerouteDetailsResponse, error) {
+	return s.queryTracerouteDetails(ctx, req)
+}
+
 func (s *service) ListRangeTests(ctx context.Context, req *meshpipev1.ListRangeTestsRequest) (*meshpipev1.ListRangeTestsResponse, error) {
 	response, err := s.queryRangeTests(ctx, req)
 	if err != nil {
@@ -521,6 +529,18 @@ func (s *service) ListNodeLocations(ctx context.Context, req *meshpipev1.ListNod
 		Locations:  locations,
 		NextCursor: cursor,
 	}, nil
+}
+
+func (s *service) ListNodeDirectReceptions(ctx context.Context, req *meshpipev1.ListNodeDirectReceptionsRequest) (*meshpipev1.ListNodeDirectReceptionsResponse, error) {
+	return s.queryNodeDirectReceptions(ctx, req)
+}
+
+func (s *service) ListNodeNames(ctx context.Context, req *meshpipev1.ListNodeNamesRequest) (*meshpipev1.ListNodeNamesResponse, error) {
+	return s.queryNodeNames(ctx, req)
+}
+
+func (s *service) ListPrimaryChannels(ctx context.Context, req *meshpipev1.ListPrimaryChannelsRequest) (*meshpipev1.ListPrimaryChannelsResponse, error) {
+	return s.queryPrimaryChannels(ctx, req)
 }
 
 func (s *service) GetChatWindow(ctx context.Context, req *meshpipev1.GetChatWindowRequest) (*meshpipev1.GetChatWindowResponse, error) {
@@ -631,13 +651,26 @@ func uint64FromNull(value sql.NullInt64) uint64 {
 }
 
 func uint32FromNull(value sql.NullInt64) uint32 {
-	if !value.Valid || value.Int64 < 0 {
-		return 0
-	}
-	if value.Int64 > math.MaxUint32 {
-		return math.MaxUint32
-	}
-	return uint32(value.Int64)
+    if !value.Valid || value.Int64 < 0 {
+        return 0
+    }
+    if value.Int64 > math.MaxUint32 {
+        return math.MaxUint32
+    }
+    return uint32(value.Int64)
+}
+
+func int32FromNull(value sql.NullInt64) int32 {
+    if !value.Valid {
+        return 0
+    }
+    if value.Int64 > math.MaxInt32 {
+        return math.MaxInt32
+    }
+    if value.Int64 < math.MinInt32 {
+        return math.MinInt32
+    }
+    return int32(value.Int64)
 }
 
 func boolFromInt(value sql.NullInt64) bool {
