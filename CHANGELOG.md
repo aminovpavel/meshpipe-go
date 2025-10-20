@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [v0.3.0] - 2025-10-20
+### Added
+- gRPC analytics expansion with unified `meshpipe.v1.MeshpipeData` service, Envoy sidecar templates, smoke tooling, and example Compose wiring for SPA consumers.
+- Additional RPCs for chat windows, node/gateway insights, traceroute hops, and health metadata with bearer token support.
+- Documentation for gRPC expansion, architecture refresh, and release checklist tailored to the SPA/Envoy stack.
+
+### Changed
+- Regenerated protobufs under `internal/api/grpc/gen/v1` with buf-based modules and reorganized service implementation to support incremental pagination/cursors.
+- Hardened SQLite persistence for analytics workloads (query batching, tuned indexes) and updated decoder flows for module payload ingestion.
+
 ## [v0.2.0] - 2025-10-19
 ### Added
 - Read-only gRPC data API (`meshpipe.v1.MeshpipeData`) with cursor pagination, streaming endpoints, optional bearer token auth, and an expanded RPC surface (chat windows, node/gateway analytics, traceroute hops/graph, health/version).
@@ -23,5 +33,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Documentation covering architecture, configuration, container images, storage schema and Docker Compose example.
 - GitHub Actions workflow for fmt/vet/tests plus automatic Docker image publishing to GHCR.
 
+[v0.3.0]: https://github.com/aminovpavel/meshpipe-go/releases/tag/v0.3.0
 [v0.2.0]: https://github.com/aminovpavel/meshpipe-go/releases/tag/v0.2.0
 [v0.1.0]: https://github.com/aminovpavel/meshpipe-go/releases/tag/v0.1.0
