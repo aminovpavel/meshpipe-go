@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -16,6 +17,7 @@ import (
 	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -26,14 +28,28 @@ type service struct {
 	logger      *slog.Logger
 	maxPageSize int
 	version     versionInfo
+	cache       cacheLayer
+	cacheTTL    time.Duration
+	cachePrefix string
 }
 
-func newService(db *sql.DB, logger *slog.Logger, maxPageSize int) *service {
+var deterministicMarshal = proto.MarshalOptions{Deterministic: true}
+
+func newService(db *sql.DB, logger *slog.Logger, maxPageSize int, cache cacheLayer, cacheTTL time.Duration, cachePrefix string) *service {
+	if cachePrefix == "" {
+		cachePrefix = "meshpipe:grpc"
+	}
+	if cacheTTL <= 0 {
+		cache = nil
+	}
 	return &service{
 		db:          db,
 		logger:      logger.With(slog.String("component", "grpc-service")),
 		maxPageSize: maxPageSize,
 		version:     loadVersionInfo(),
+		cache:       cache,
+		cacheTTL:    cacheTTL,
+		cachePrefix: cachePrefix,
 	}
 }
 
@@ -464,11 +480,78 @@ func (s *service) GetGatewayOverview(ctx context.Context, req *meshpipev1.GetGat
 	return &meshpipev1.GetGatewayOverviewResponse{Gateways: overviews}, nil
 }
 
+func (s *service) GetNetworkTopology(ctx context.Context, req *meshpipev1.NetworkTopologyRequest) (*meshpipev1.NetworkTopologyResponse, error) {
+	cached := new(meshpipev1.NetworkTopologyResponse)
+	if s.loadCachedResponse(ctx, "network_topology", req, cached) {
+		return cached, nil
+	}
+
+	response, err := s.queryNetworkTopology(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.storeCachedResponse(ctx, "network_topology", req, response)
+	return response, nil
+}
+
+func (s *service) GetLongestLinksAnalysis(ctx context.Context, req *meshpipev1.LongestLinksRequest) (*meshpipev1.LongestLinksResponse, error) {
+	cached := new(meshpipev1.LongestLinksResponse)
+	if s.loadCachedResponse(ctx, "longest_links", req, cached) {
+		return cached, nil
+	}
+
+	response, err := s.queryLongestLinks(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.storeCachedResponse(ctx, "longest_links", req, response)
+	return response, nil
+}
+
+func (s *service) GetGatewayComparison(ctx context.Context, req *meshpipev1.GatewayComparisonRequest) (*meshpipev1.GatewayComparisonResponse, error) {
+	cached := new(meshpipev1.GatewayComparisonResponse)
+	if s.loadCachedResponse(ctx, "gateway_comparison", req, cached) {
+		return cached, nil
+	}
+
+	response, err := s.queryGatewayComparison(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.storeCachedResponse(ctx, "gateway_comparison", req, response)
+	return response, nil
+}
+
+func (s *service) ListGatewayCandidates(ctx context.Context, req *meshpipev1.GatewayCandidatesRequest) (*meshpipev1.GatewayCandidatesResponse, error) {
+	cached := new(meshpipev1.GatewayCandidatesResponse)
+	if s.loadCachedResponse(ctx, "gateway_candidates", req, cached) {
+		return cached, nil
+	}
+
+	response, err := s.queryGatewayCandidates(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.storeCachedResponse(ctx, "gateway_candidates", req, response)
+	return response, nil
+}
+
 func (s *service) GetAnalyticsSummary(ctx context.Context, req *meshpipev1.GetAnalyticsSummaryRequest) (*meshpipev1.GetAnalyticsSummaryResponse, error) {
+	cached := new(meshpipev1.GetAnalyticsSummaryResponse)
+	if s.loadCachedResponse(ctx, "analytics_summary", req, cached) {
+		return cached, nil
+	}
+
 	summary, err := s.queryAnalyticsSummary(ctx, req)
 	if err != nil {
 		return nil, err
 	}
+
+	s.storeCachedResponse(ctx, "analytics_summary", req, summary)
 	return summary, nil
 }
 
@@ -575,6 +658,62 @@ func (s *service) GetVersion(ctx context.Context, _ *meshpipev1.GetVersionReques
 
 // Helper methods ------------------------------------------------------------
 
+func (s *service) cacheEnabled() bool {
+	return s.cache != nil && s.cacheTTL > 0
+}
+
+func (s *service) loadCachedResponse(ctx context.Context, namespace string, req proto.Message, dest proto.Message) bool {
+	if !s.cacheEnabled() {
+		return false
+	}
+	key, err := s.buildCacheKey(namespace, req)
+	if err != nil {
+		s.logger.Debug("grpc cache: build key failed", slog.String("namespace", namespace), slog.Any("error", err))
+		return false
+	}
+	data, ok, err := s.cache.Get(ctx, key)
+	if err != nil {
+		s.logger.Debug("grpc cache: get failed", slog.String("namespace", namespace), slog.Any("error", err))
+		return false
+	}
+	if !ok {
+		return false
+	}
+	if err := proto.Unmarshal(data, dest); err != nil {
+		s.logger.Debug("grpc cache: unmarshal failed", slog.String("namespace", namespace), slog.Any("error", err))
+		return false
+	}
+	return true
+}
+
+func (s *service) storeCachedResponse(ctx context.Context, namespace string, req proto.Message, msg proto.Message) {
+	if !s.cacheEnabled() {
+		return
+	}
+	key, err := s.buildCacheKey(namespace, req)
+	if err != nil {
+		s.logger.Debug("grpc cache: build key failed", slog.String("namespace", namespace), slog.Any("error", err))
+		return
+	}
+	payload, err := deterministicMarshal.Marshal(msg)
+	if err != nil {
+		s.logger.Debug("grpc cache: marshal failed", slog.String("namespace", namespace), slog.Any("error", err))
+		return
+	}
+	if err := s.cache.Set(ctx, key, payload, s.cacheTTL); err != nil {
+		s.logger.Debug("grpc cache: set failed", slog.String("namespace", namespace), slog.Any("error", err))
+	}
+}
+
+func (s *service) buildCacheKey(namespace string, req proto.Message) (string, error) {
+	payload, err := deterministicMarshal.Marshal(req)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(payload)
+	return fmt.Sprintf("%s:%s:%s:%x", s.cachePrefix, namespace, proto.MessageName(req), sum[:]), nil
+}
+
 type packetCursor struct {
 	Timestamp float64 `json:"ts"`
 	ID        int64   `json:"id"`
@@ -651,26 +790,26 @@ func uint64FromNull(value sql.NullInt64) uint64 {
 }
 
 func uint32FromNull(value sql.NullInt64) uint32 {
-    if !value.Valid || value.Int64 < 0 {
-        return 0
-    }
-    if value.Int64 > math.MaxUint32 {
-        return math.MaxUint32
-    }
-    return uint32(value.Int64)
+	if !value.Valid || value.Int64 < 0 {
+		return 0
+	}
+	if value.Int64 > math.MaxUint32 {
+		return math.MaxUint32
+	}
+	return uint32(value.Int64)
 }
 
 func int32FromNull(value sql.NullInt64) int32 {
-    if !value.Valid {
-        return 0
-    }
-    if value.Int64 > math.MaxInt32 {
-        return math.MaxInt32
-    }
-    if value.Int64 < math.MinInt32 {
-        return math.MinInt32
-    }
-    return int32(value.Int64)
+	if !value.Valid {
+		return 0
+	}
+	if value.Int64 > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if value.Int64 < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(value.Int64)
 }
 
 func boolFromInt(value sql.NullInt64) bool {

@@ -51,7 +51,7 @@ func TestMeshpipeDataServiceEndToEnd(t *testing.T) {
 	t.Setenv("MESHPIPE_VERSION", "v0.2.0-test")
 	t.Setenv("MESHPIPE_GIT_SHA", "4314a53")
 	t.Setenv("MESHPIPE_BUILD_DATE", "2025-10-19T09:20:52Z")
-	service := newService(db, logger, 200)
+	service := newService(db, logger, 200, nil, 0, "")
 
 	const token = "secret-token"
 	lis := bufconn.Listen(bufConnSize)

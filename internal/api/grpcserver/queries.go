@@ -2008,10 +2008,17 @@ func (s *service) queryGatewayOverview(ctx context.Context, req *meshpipev1.GetG
 	}
 
 	now := time.Now().UTC()
-	since := float64(now.Add(-24*time.Hour).UnixNano()) / 1e9
+	end := timestampToFloat(req.GetEndTime())
+	if end <= 0 {
+		end = float64(now.UnixNano()) / 1e9
+	}
+	start := timestampToFloat(req.GetStartTime())
+	if start <= 0 || start >= end {
+		start = end - 24*3600
+	}
 
-	clauses := []string{"timestamp >= ?"}
-	args := []any{since}
+	clauses := []string{"timestamp BETWEEN ? AND ?"}
+	args := []any{start, end}
 
 	if gw := strings.TrimSpace(req.GetGatewayId()); gw != "" {
 		clauses = append(clauses, "gateway_id = ?")
@@ -2069,26 +2076,26 @@ func (s *service) queryGatewayOverview(ctx context.Context, req *meshpipev1.GetG
 	nodesWithMulti := make(map[string]uint64, len(gatewayIDs))
 	if len(gatewayIDs) > 0 {
 		placeholders := make([]string, 0, len(gatewayIDs))
-		argsMulti := make([]any, 0, len(gatewayIDs)+2)
-		argsMulti = append(argsMulti, since)
+		argsMulti := make([]any, 0, len(gatewayIDs)+4)
+		argsMulti = append(argsMulti, start, end)
 		for _, id := range gatewayIDs {
 			placeholders = append(placeholders, "?")
 			argsMulti = append(argsMulti, id)
 		}
-		argsMulti = append(argsMulti, since)
+		argsMulti = append(argsMulti, start, end)
 
 		queryMulti := fmt.Sprintf(`
 		    WITH multi_gateway_nodes AS (
 		        SELECT from_node_id
 		        FROM packet_history
-		        WHERE timestamp >= ?
+		        WHERE timestamp BETWEEN ? AND ?
 		        GROUP BY from_node_id
 		        HAVING COUNT(DISTINCT gateway_id) > 1
 		    )
 		    SELECT ph.gateway_id, COUNT(DISTINCT ph.from_node_id) AS cnt
 		    FROM packet_history ph
 		    JOIN multi_gateway_nodes mn ON mn.from_node_id = ph.from_node_id
-		    WHERE ph.gateway_id IN (%s) AND ph.timestamp >= ?
+		    WHERE ph.gateway_id IN (%s) AND ph.timestamp BETWEEN ? AND ?
 		    GROUP BY ph.gateway_id`, strings.Join(placeholders, ","))
 
 		multiRows, err := s.db.QueryContext(ctx, queryMulti, argsMulti...)

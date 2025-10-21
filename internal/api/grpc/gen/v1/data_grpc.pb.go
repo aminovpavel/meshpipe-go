@@ -34,6 +34,10 @@ const (
 	MeshpipeData_GetChatWindow_FullMethodName            = "/meshpipe.v1.MeshpipeData/GetChatWindow"
 	MeshpipeData_GetNodeAnalytics_FullMethodName         = "/meshpipe.v1.MeshpipeData/GetNodeAnalytics"
 	MeshpipeData_GetGatewayOverview_FullMethodName       = "/meshpipe.v1.MeshpipeData/GetGatewayOverview"
+	MeshpipeData_GetNetworkTopology_FullMethodName       = "/meshpipe.v1.MeshpipeData/GetNetworkTopology"
+	MeshpipeData_GetLongestLinksAnalysis_FullMethodName  = "/meshpipe.v1.MeshpipeData/GetLongestLinksAnalysis"
+	MeshpipeData_GetGatewayComparison_FullMethodName     = "/meshpipe.v1.MeshpipeData/GetGatewayComparison"
+	MeshpipeData_ListGatewayCandidates_FullMethodName    = "/meshpipe.v1.MeshpipeData/ListGatewayCandidates"
 	MeshpipeData_GetAnalyticsSummary_FullMethodName      = "/meshpipe.v1.MeshpipeData/GetAnalyticsSummary"
 	MeshpipeData_ListTraceroutePackets_FullMethodName    = "/meshpipe.v1.MeshpipeData/ListTraceroutePackets"
 	MeshpipeData_GetTracerouteDetails_FullMethodName     = "/meshpipe.v1.MeshpipeData/GetTracerouteDetails"
@@ -65,6 +69,10 @@ type MeshpipeDataClient interface {
 	GetChatWindow(ctx context.Context, in *GetChatWindowRequest, opts ...grpc.CallOption) (*GetChatWindowResponse, error)
 	GetNodeAnalytics(ctx context.Context, in *GetNodeAnalyticsRequest, opts ...grpc.CallOption) (*GetNodeAnalyticsResponse, error)
 	GetGatewayOverview(ctx context.Context, in *GetGatewayOverviewRequest, opts ...grpc.CallOption) (*GetGatewayOverviewResponse, error)
+	GetNetworkTopology(ctx context.Context, in *NetworkTopologyRequest, opts ...grpc.CallOption) (*NetworkTopologyResponse, error)
+	GetLongestLinksAnalysis(ctx context.Context, in *LongestLinksRequest, opts ...grpc.CallOption) (*LongestLinksResponse, error)
+	GetGatewayComparison(ctx context.Context, in *GatewayComparisonRequest, opts ...grpc.CallOption) (*GatewayComparisonResponse, error)
+	ListGatewayCandidates(ctx context.Context, in *GatewayCandidatesRequest, opts ...grpc.CallOption) (*GatewayCandidatesResponse, error)
 	GetAnalyticsSummary(ctx context.Context, in *GetAnalyticsSummaryRequest, opts ...grpc.CallOption) (*GetAnalyticsSummaryResponse, error)
 	ListTraceroutePackets(ctx context.Context, in *ListTraceroutePacketsRequest, opts ...grpc.CallOption) (*ListTraceroutePacketsResponse, error)
 	GetTracerouteDetails(ctx context.Context, in *GetTracerouteDetailsRequest, opts ...grpc.CallOption) (*GetTracerouteDetailsResponse, error)
@@ -244,6 +252,46 @@ func (c *meshpipeDataClient) GetGatewayOverview(ctx context.Context, in *GetGate
 	return out, nil
 }
 
+func (c *meshpipeDataClient) GetNetworkTopology(ctx context.Context, in *NetworkTopologyRequest, opts ...grpc.CallOption) (*NetworkTopologyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NetworkTopologyResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_GetNetworkTopology_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) GetLongestLinksAnalysis(ctx context.Context, in *LongestLinksRequest, opts ...grpc.CallOption) (*LongestLinksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LongestLinksResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_GetLongestLinksAnalysis_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) GetGatewayComparison(ctx context.Context, in *GatewayComparisonRequest, opts ...grpc.CallOption) (*GatewayComparisonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GatewayComparisonResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_GetGatewayComparison_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *meshpipeDataClient) ListGatewayCandidates(ctx context.Context, in *GatewayCandidatesRequest, opts ...grpc.CallOption) (*GatewayCandidatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GatewayCandidatesResponse)
+	err := c.cc.Invoke(ctx, MeshpipeData_ListGatewayCandidates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *meshpipeDataClient) GetAnalyticsSummary(ctx context.Context, in *GetAnalyticsSummaryRequest, opts ...grpc.CallOption) (*GetAnalyticsSummaryResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetAnalyticsSummaryResponse)
@@ -363,6 +411,10 @@ type MeshpipeDataServer interface {
 	GetChatWindow(context.Context, *GetChatWindowRequest) (*GetChatWindowResponse, error)
 	GetNodeAnalytics(context.Context, *GetNodeAnalyticsRequest) (*GetNodeAnalyticsResponse, error)
 	GetGatewayOverview(context.Context, *GetGatewayOverviewRequest) (*GetGatewayOverviewResponse, error)
+	GetNetworkTopology(context.Context, *NetworkTopologyRequest) (*NetworkTopologyResponse, error)
+	GetLongestLinksAnalysis(context.Context, *LongestLinksRequest) (*LongestLinksResponse, error)
+	GetGatewayComparison(context.Context, *GatewayComparisonRequest) (*GatewayComparisonResponse, error)
+	ListGatewayCandidates(context.Context, *GatewayCandidatesRequest) (*GatewayCandidatesResponse, error)
 	GetAnalyticsSummary(context.Context, *GetAnalyticsSummaryRequest) (*GetAnalyticsSummaryResponse, error)
 	ListTraceroutePackets(context.Context, *ListTraceroutePacketsRequest) (*ListTraceroutePacketsResponse, error)
 	GetTracerouteDetails(context.Context, *GetTracerouteDetailsRequest) (*GetTracerouteDetailsResponse, error)
@@ -427,6 +479,18 @@ func (UnimplementedMeshpipeDataServer) GetNodeAnalytics(context.Context, *GetNod
 }
 func (UnimplementedMeshpipeDataServer) GetGatewayOverview(context.Context, *GetGatewayOverviewRequest) (*GetGatewayOverviewResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGatewayOverview not implemented")
+}
+func (UnimplementedMeshpipeDataServer) GetNetworkTopology(context.Context, *NetworkTopologyRequest) (*NetworkTopologyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNetworkTopology not implemented")
+}
+func (UnimplementedMeshpipeDataServer) GetLongestLinksAnalysis(context.Context, *LongestLinksRequest) (*LongestLinksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLongestLinksAnalysis not implemented")
+}
+func (UnimplementedMeshpipeDataServer) GetGatewayComparison(context.Context, *GatewayComparisonRequest) (*GatewayComparisonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGatewayComparison not implemented")
+}
+func (UnimplementedMeshpipeDataServer) ListGatewayCandidates(context.Context, *GatewayCandidatesRequest) (*GatewayCandidatesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGatewayCandidates not implemented")
 }
 func (UnimplementedMeshpipeDataServer) GetAnalyticsSummary(context.Context, *GetAnalyticsSummaryRequest) (*GetAnalyticsSummaryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAnalyticsSummary not implemented")
@@ -742,6 +806,78 @@ func _MeshpipeData_GetGatewayOverview_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MeshpipeData_GetNetworkTopology_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NetworkTopologyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).GetNetworkTopology(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_GetNetworkTopology_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).GetNetworkTopology(ctx, req.(*NetworkTopologyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_GetLongestLinksAnalysis_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LongestLinksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).GetLongestLinksAnalysis(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_GetLongestLinksAnalysis_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).GetLongestLinksAnalysis(ctx, req.(*LongestLinksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_GetGatewayComparison_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GatewayComparisonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).GetGatewayComparison(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_GetGatewayComparison_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).GetGatewayComparison(ctx, req.(*GatewayComparisonRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MeshpipeData_ListGatewayCandidates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GatewayCandidatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshpipeDataServer).ListGatewayCandidates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshpipeData_ListGatewayCandidates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshpipeDataServer).ListGatewayCandidates(ctx, req.(*GatewayCandidatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MeshpipeData_GetAnalyticsSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAnalyticsSummaryRequest)
 	if err := dec(in); err != nil {
@@ -984,6 +1120,22 @@ var MeshpipeData_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGatewayOverview",
 			Handler:    _MeshpipeData_GetGatewayOverview_Handler,
+		},
+		{
+			MethodName: "GetNetworkTopology",
+			Handler:    _MeshpipeData_GetNetworkTopology_Handler,
+		},
+		{
+			MethodName: "GetLongestLinksAnalysis",
+			Handler:    _MeshpipeData_GetLongestLinksAnalysis_Handler,
+		},
+		{
+			MethodName: "GetGatewayComparison",
+			Handler:    _MeshpipeData_GetGatewayComparison_Handler,
+		},
+		{
+			MethodName: "ListGatewayCandidates",
+			Handler:    _MeshpipeData_ListGatewayCandidates_Handler,
 		},
 		{
 			MethodName: "GetAnalyticsSummary",

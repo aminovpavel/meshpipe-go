@@ -84,12 +84,29 @@ func main() {
 	})
 	go obsServer.Run(ctx)
 
+	cacheCfg := grpcserver.CacheConfig{
+		Enabled:                 cfg.GRPCCacheEnabled,
+		KeyPrefix:               cfg.GRPCCacheKeyPrefix,
+		DefaultTTLSeconds:       cfg.GRPCCacheTTLSeconds,
+		RedisAddress:            cfg.RedisAddress,
+		RedisUsername:           cfg.RedisUsername,
+		RedisPassword:           cfg.RedisPassword,
+		RedisDB:                 cfg.RedisDB,
+		RedisTLSEnabled:         cfg.RedisTLSEnabled,
+		RedisInsecureSkipVerify: cfg.RedisTLSInsecureSkipVerify,
+	}
+	if cacheCfg.Enabled && cacheCfg.RedisAddress == "" {
+		logger.Warn("grpc cache enabled but redis address is empty; disabling cache")
+		cacheCfg.Enabled = false
+	}
+
 	grpcSrv, err := grpcserver.New(grpcserver.Config{
 		Enabled:      cfg.GRPCEnabled,
 		Address:      cfg.GRPCListenAddress,
 		AuthToken:    cfg.GRPCAuthToken,
 		DatabasePath: cfg.DatabaseFile,
 		MaxPageSize:  cfg.GRPCMaxPageSize,
+		Cache:        cacheCfg,
 	}, logger, metrics)
 	if err != nil {
 		logger.Error("failed to initialise gRPC server", slog.Any("error", err))

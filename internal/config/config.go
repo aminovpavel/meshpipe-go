@@ -15,29 +15,38 @@ var envPrefixes = []string{"MESHPIPE_", "MALLA_"}
 
 // App holds user-facing configuration derived from YAML + environment overrides.
 type App struct {
-	Name                 string `yaml:"name"`
-	DatabaseFile         string `yaml:"database_file"`
-	MQTTBrokerAddress    string `yaml:"mqtt_broker_address"`
-	MQTTPort             int    `yaml:"mqtt_port"`
-	MQTTUsername         string `yaml:"mqtt_username"`
-	MQTTPassword         string `yaml:"mqtt_password"`
-	MQTTTopicPrefix      string `yaml:"mqtt_topic_prefix"`
-	MQTTTopicSuffix      string `yaml:"mqtt_topic_suffix"`
-	DefaultChannelKey    string `yaml:"default_channel_key"`
-	LogLevel             string `yaml:"log_level"`
-	CaptureStoreRaw      bool   `yaml:"capture_store_raw"`
-	WALAutocheckpoint    int    `yaml:"wal_autocheckpoint_pages"`
-	JournalSizeLimit     int    `yaml:"journal_size_limit_bytes"`
-	SQLiteCacheKiB       int    `yaml:"sqlite_cache_kib"`
-	SQLiteDisableMmap    bool   `yaml:"sqlite_disable_mmap"`
-	ObservabilityAddress string `yaml:"observability_address"`
-	MaintenanceInterval  int    `yaml:"maintenance_interval_minutes"`
-	MaxEnvelopeBytes     int    `yaml:"max_envelope_bytes"`
-	GRPCEnabled          bool   `yaml:"grpc_enabled"`
-	GRPCListenAddress    string `yaml:"grpc_listen_address"`
-	GRPCAuthToken        string `yaml:"grpc_auth_token"`
-	GRPCMaxPageSize      int    `yaml:"grpc_max_page_size"`
-	ConfigPath           string `yaml:"-"`
+	Name                       string `yaml:"name"`
+	DatabaseFile               string `yaml:"database_file"`
+	MQTTBrokerAddress          string `yaml:"mqtt_broker_address"`
+	MQTTPort                   int    `yaml:"mqtt_port"`
+	MQTTUsername               string `yaml:"mqtt_username"`
+	MQTTPassword               string `yaml:"mqtt_password"`
+	MQTTTopicPrefix            string `yaml:"mqtt_topic_prefix"`
+	MQTTTopicSuffix            string `yaml:"mqtt_topic_suffix"`
+	DefaultChannelKey          string `yaml:"default_channel_key"`
+	LogLevel                   string `yaml:"log_level"`
+	CaptureStoreRaw            bool   `yaml:"capture_store_raw"`
+	WALAutocheckpoint          int    `yaml:"wal_autocheckpoint_pages"`
+	JournalSizeLimit           int    `yaml:"journal_size_limit_bytes"`
+	SQLiteCacheKiB             int    `yaml:"sqlite_cache_kib"`
+	SQLiteDisableMmap          bool   `yaml:"sqlite_disable_mmap"`
+	ObservabilityAddress       string `yaml:"observability_address"`
+	MaintenanceInterval        int    `yaml:"maintenance_interval_minutes"`
+	MaxEnvelopeBytes           int    `yaml:"max_envelope_bytes"`
+	GRPCEnabled                bool   `yaml:"grpc_enabled"`
+	GRPCListenAddress          string `yaml:"grpc_listen_address"`
+	GRPCAuthToken              string `yaml:"grpc_auth_token"`
+	GRPCMaxPageSize            int    `yaml:"grpc_max_page_size"`
+	GRPCCacheEnabled           bool   `yaml:"grpc_cache_enabled"`
+	GRPCCacheTTLSeconds        int    `yaml:"grpc_cache_ttl_seconds"`
+	GRPCCacheKeyPrefix         string `yaml:"grpc_cache_key_prefix"`
+	RedisAddress               string `yaml:"redis_address"`
+	RedisUsername              string `yaml:"redis_username"`
+	RedisPassword              string `yaml:"redis_password"`
+	RedisDB                    int    `yaml:"redis_db"`
+	RedisTLSEnabled            bool   `yaml:"redis_tls_enabled"`
+	RedisTLSInsecureSkipVerify bool   `yaml:"redis_tls_insecure_skip_verify"`
+	ConfigPath                 string `yaml:"-"`
 }
 
 func New(defaultPath string) (*App, error) {
@@ -156,6 +165,24 @@ func overrideFromEnv(cfg *App) error {
 			cfg.GRPCAuthToken = value
 		case "grpc_max_page_size":
 			fmt.Sscanf(value, "%d", &cfg.GRPCMaxPageSize)
+		case "grpc_cache_enabled":
+			cfg.GRPCCacheEnabled = parseBool(value, cfg.GRPCCacheEnabled)
+		case "grpc_cache_ttl_seconds":
+			fmt.Sscanf(value, "%d", &cfg.GRPCCacheTTLSeconds)
+		case "grpc_cache_key_prefix":
+			cfg.GRPCCacheKeyPrefix = value
+		case "redis_address":
+			cfg.RedisAddress = value
+		case "redis_username":
+			cfg.RedisUsername = value
+		case "redis_password":
+			cfg.RedisPassword = value
+		case "redis_db":
+			fmt.Sscanf(value, "%d", &cfg.RedisDB)
+		case "redis_tls_enabled":
+			cfg.RedisTLSEnabled = parseBool(value, cfg.RedisTLSEnabled)
+		case "redis_tls_insecure_skip_verify":
+			cfg.RedisTLSInsecureSkipVerify = parseBool(value, cfg.RedisTLSInsecureSkipVerify)
 		}
 	}
 	return nil
@@ -194,6 +221,8 @@ func defaultConfig() *App {
 		GRPCListenAddress:    ":7443",
 		GRPCAuthToken:        "",
 		GRPCMaxPageSize:      500,
+		GRPCCacheTTLSeconds:  30,
+		GRPCCacheKeyPrefix:   "meshpipe:grpc",
 	}
 }
 

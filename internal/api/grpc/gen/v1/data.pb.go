@@ -3846,6 +3846,8 @@ type GetGatewayOverviewRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         uint32                 `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 	GatewayId     string                 `protobuf:"bytes,2,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	StartTime     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3892,6 +3894,20 @@ func (x *GetGatewayOverviewRequest) GetGatewayId() string {
 		return x.GatewayId
 	}
 	return ""
+}
+
+func (x *GetGatewayOverviewRequest) GetStartTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartTime
+	}
+	return nil
+}
+
+func (x *GetGatewayOverviewRequest) GetEndTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndTime
+	}
+	return nil
 }
 
 type GatewayOverview struct {
@@ -4038,6 +4054,1386 @@ func (x *GetGatewayOverviewResponse) GetGateways() []*GatewayOverview {
 	return nil
 }
 
+type NetworkTopologyRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	StartTime          *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime            *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	MaxHours           uint32                 `protobuf:"varint,3,opt,name=max_hours,json=maxHours,proto3" json:"max_hours,omitempty"`
+	MinSnr             float64                `protobuf:"fixed64,4,opt,name=min_snr,json=minSnr,proto3" json:"min_snr,omitempty"`
+	IncludePacketLinks bool                   `protobuf:"varint,5,opt,name=include_packet_links,json=includePacketLinks,proto3" json:"include_packet_links,omitempty"`
+	PacketLimit        uint32                 `protobuf:"varint,6,opt,name=packet_limit,json=packetLimit,proto3" json:"packet_limit,omitempty"`
+	GatewayId          string                 `protobuf:"bytes,7,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *NetworkTopologyRequest) Reset() {
+	*x = NetworkTopologyRequest{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkTopologyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkTopologyRequest) ProtoMessage() {}
+
+func (x *NetworkTopologyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkTopologyRequest.ProtoReflect.Descriptor instead.
+func (*NetworkTopologyRequest) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *NetworkTopologyRequest) GetStartTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartTime
+	}
+	return nil
+}
+
+func (x *NetworkTopologyRequest) GetEndTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndTime
+	}
+	return nil
+}
+
+func (x *NetworkTopologyRequest) GetMaxHours() uint32 {
+	if x != nil {
+		return x.MaxHours
+	}
+	return 0
+}
+
+func (x *NetworkTopologyRequest) GetMinSnr() float64 {
+	if x != nil {
+		return x.MinSnr
+	}
+	return 0
+}
+
+func (x *NetworkTopologyRequest) GetIncludePacketLinks() bool {
+	if x != nil {
+		return x.IncludePacketLinks
+	}
+	return false
+}
+
+func (x *NetworkTopologyRequest) GetPacketLimit() uint32 {
+	if x != nil {
+		return x.PacketLimit
+	}
+	return 0
+}
+
+func (x *NetworkTopologyRequest) GetGatewayId() string {
+	if x != nil {
+		return x.GatewayId
+	}
+	return ""
+}
+
+type NetworkTopologyStats struct {
+	state                     protoimpl.MessageState `protogen:"open.v1"`
+	PacketsAnalyzed           uint64                 `protobuf:"varint,1,opt,name=packets_analyzed,json=packetsAnalyzed,proto3" json:"packets_analyzed,omitempty"`
+	PacketsWithRfHops         uint64                 `protobuf:"varint,2,opt,name=packets_with_rf_hops,json=packetsWithRfHops,proto3" json:"packets_with_rf_hops,omitempty"`
+	TotalRfHops               uint64                 `protobuf:"varint,3,opt,name=total_rf_hops,json=totalRfHops,proto3" json:"total_rf_hops,omitempty"`
+	LinksFilteredBySnr        uint64                 `protobuf:"varint,4,opt,name=links_filtered_by_snr,json=linksFilteredBySnr,proto3" json:"links_filtered_by_snr,omitempty"`
+	LinksFilteredDueToSnrZero uint64                 `protobuf:"varint,5,opt,name=links_filtered_due_to_snr_zero,json=linksFilteredDueToSnrZero,proto3" json:"links_filtered_due_to_snr_zero,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *NetworkTopologyStats) Reset() {
+	*x = NetworkTopologyStats{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkTopologyStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkTopologyStats) ProtoMessage() {}
+
+func (x *NetworkTopologyStats) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkTopologyStats.ProtoReflect.Descriptor instead.
+func (*NetworkTopologyStats) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *NetworkTopologyStats) GetPacketsAnalyzed() uint64 {
+	if x != nil {
+		return x.PacketsAnalyzed
+	}
+	return 0
+}
+
+func (x *NetworkTopologyStats) GetPacketsWithRfHops() uint64 {
+	if x != nil {
+		return x.PacketsWithRfHops
+	}
+	return 0
+}
+
+func (x *NetworkTopologyStats) GetTotalRfHops() uint64 {
+	if x != nil {
+		return x.TotalRfHops
+	}
+	return 0
+}
+
+func (x *NetworkTopologyStats) GetLinksFilteredBySnr() uint64 {
+	if x != nil {
+		return x.LinksFilteredBySnr
+	}
+	return 0
+}
+
+func (x *NetworkTopologyStats) GetLinksFilteredDueToSnrZero() uint64 {
+	if x != nil {
+		return x.LinksFilteredDueToSnrZero
+	}
+	return 0
+}
+
+type NetworkNode struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        uint32                 `protobuf:"varint,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	Latitude      float64                `protobuf:"fixed64,3,opt,name=latitude,proto3" json:"latitude,omitempty"`
+	Longitude     float64                `protobuf:"fixed64,4,opt,name=longitude,proto3" json:"longitude,omitempty"`
+	AvgSnr        float64                `protobuf:"fixed64,5,opt,name=avg_snr,json=avgSnr,proto3" json:"avg_snr,omitempty"`
+	AvgRssi       float64                `protobuf:"fixed64,6,opt,name=avg_rssi,json=avgRssi,proto3" json:"avg_rssi,omitempty"`
+	NeighborCount uint32                 `protobuf:"varint,7,opt,name=neighbor_count,json=neighborCount,proto3" json:"neighbor_count,omitempty"`
+	LastSeen      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	Role          string                 `protobuf:"bytes,9,opt,name=role,proto3" json:"role,omitempty"`
+	Region        string                 `protobuf:"bytes,10,opt,name=region,proto3" json:"region,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NetworkNode) Reset() {
+	*x = NetworkNode{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkNode) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkNode) ProtoMessage() {}
+
+func (x *NetworkNode) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkNode.ProtoReflect.Descriptor instead.
+func (*NetworkNode) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *NetworkNode) GetNodeId() uint32 {
+	if x != nil {
+		return x.NodeId
+	}
+	return 0
+}
+
+func (x *NetworkNode) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *NetworkNode) GetLatitude() float64 {
+	if x != nil {
+		return x.Latitude
+	}
+	return 0
+}
+
+func (x *NetworkNode) GetLongitude() float64 {
+	if x != nil {
+		return x.Longitude
+	}
+	return 0
+}
+
+func (x *NetworkNode) GetAvgSnr() float64 {
+	if x != nil {
+		return x.AvgSnr
+	}
+	return 0
+}
+
+func (x *NetworkNode) GetAvgRssi() float64 {
+	if x != nil {
+		return x.AvgRssi
+	}
+	return 0
+}
+
+func (x *NetworkNode) GetNeighborCount() uint32 {
+	if x != nil {
+		return x.NeighborCount
+	}
+	return 0
+}
+
+func (x *NetworkNode) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
+func (x *NetworkNode) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *NetworkNode) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
+type NetworkLink struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	SourceNodeId    uint32                 `protobuf:"varint,1,opt,name=source_node_id,json=sourceNodeId,proto3" json:"source_node_id,omitempty"`
+	TargetNodeId    uint32                 `protobuf:"varint,2,opt,name=target_node_id,json=targetNodeId,proto3" json:"target_node_id,omitempty"`
+	AvgSnr          float64                `protobuf:"fixed64,3,opt,name=avg_snr,json=avgSnr,proto3" json:"avg_snr,omitempty"`
+	PacketCount     uint64                 `protobuf:"varint,4,opt,name=packet_count,json=packetCount,proto3" json:"packet_count,omitempty"`
+	TracerouteCount uint64                 `protobuf:"varint,5,opt,name=traceroute_count,json=tracerouteCount,proto3" json:"traceroute_count,omitempty"`
+	LastSeen        *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	DistanceKm      float64                `protobuf:"fixed64,7,opt,name=distance_km,json=distanceKm,proto3" json:"distance_km,omitempty"`
+	Strength        float64                `protobuf:"fixed64,8,opt,name=strength,proto3" json:"strength,omitempty"`
+	LastPacketId    uint64                 `protobuf:"varint,9,opt,name=last_packet_id,json=lastPacketId,proto3" json:"last_packet_id,omitempty"`
+	Bidirectional   bool                   `protobuf:"varint,10,opt,name=bidirectional,proto3" json:"bidirectional,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *NetworkLink) Reset() {
+	*x = NetworkLink{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkLink) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkLink) ProtoMessage() {}
+
+func (x *NetworkLink) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkLink.ProtoReflect.Descriptor instead.
+func (*NetworkLink) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *NetworkLink) GetSourceNodeId() uint32 {
+	if x != nil {
+		return x.SourceNodeId
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetTargetNodeId() uint32 {
+	if x != nil {
+		return x.TargetNodeId
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetAvgSnr() float64 {
+	if x != nil {
+		return x.AvgSnr
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetPacketCount() uint64 {
+	if x != nil {
+		return x.PacketCount
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetTracerouteCount() uint64 {
+	if x != nil {
+		return x.TracerouteCount
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
+func (x *NetworkLink) GetDistanceKm() float64 {
+	if x != nil {
+		return x.DistanceKm
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetStrength() float64 {
+	if x != nil {
+		return x.Strength
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetLastPacketId() uint64 {
+	if x != nil {
+		return x.LastPacketId
+	}
+	return 0
+}
+
+func (x *NetworkLink) GetBidirectional() bool {
+	if x != nil {
+		return x.Bidirectional
+	}
+	return false
+}
+
+type NetworkTopologyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Nodes         []*NetworkNode         `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+	Links         []*NetworkLink         `protobuf:"bytes,2,rep,name=links,proto3" json:"links,omitempty"`
+	Stats         *NetworkTopologyStats  `protobuf:"bytes,3,opt,name=stats,proto3" json:"stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NetworkTopologyResponse) Reset() {
+	*x = NetworkTopologyResponse{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkTopologyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkTopologyResponse) ProtoMessage() {}
+
+func (x *NetworkTopologyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkTopologyResponse.ProtoReflect.Descriptor instead.
+func (*NetworkTopologyResponse) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *NetworkTopologyResponse) GetNodes() []*NetworkNode {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
+func (x *NetworkTopologyResponse) GetLinks() []*NetworkLink {
+	if x != nil {
+		return x.Links
+	}
+	return nil
+}
+
+func (x *NetworkTopologyResponse) GetStats() *NetworkTopologyStats {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+type LongestLinksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MinDistanceKm float64                `protobuf:"fixed64,1,opt,name=min_distance_km,json=minDistanceKm,proto3" json:"min_distance_km,omitempty"`
+	MinSnr        float64                `protobuf:"fixed64,2,opt,name=min_snr,json=minSnr,proto3" json:"min_snr,omitempty"`
+	MaxResults    uint32                 `protobuf:"varint,3,opt,name=max_results,json=maxResults,proto3" json:"max_results,omitempty"`
+	LookbackHours uint32                 `protobuf:"varint,4,opt,name=lookback_hours,json=lookbackHours,proto3" json:"lookback_hours,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LongestLinksRequest) Reset() {
+	*x = LongestLinksRequest{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LongestLinksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LongestLinksRequest) ProtoMessage() {}
+
+func (x *LongestLinksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LongestLinksRequest.ProtoReflect.Descriptor instead.
+func (*LongestLinksRequest) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *LongestLinksRequest) GetMinDistanceKm() float64 {
+	if x != nil {
+		return x.MinDistanceKm
+	}
+	return 0
+}
+
+func (x *LongestLinksRequest) GetMinSnr() float64 {
+	if x != nil {
+		return x.MinSnr
+	}
+	return 0
+}
+
+func (x *LongestLinksRequest) GetMaxResults() uint32 {
+	if x != nil {
+		return x.MaxResults
+	}
+	return 0
+}
+
+func (x *LongestLinksRequest) GetLookbackHours() uint32 {
+	if x != nil {
+		return x.LookbackHours
+	}
+	return 0
+}
+
+type LongestLinkPacket struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PacketId      uint64                 `protobuf:"varint,1,opt,name=packet_id,json=packetId,proto3" json:"packet_id,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Snr           float64                `protobuf:"fixed64,3,opt,name=snr,proto3" json:"snr,omitempty"`
+	Rssi          int32                  `protobuf:"zigzag32,4,opt,name=rssi,proto3" json:"rssi,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LongestLinkPacket) Reset() {
+	*x = LongestLinkPacket{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LongestLinkPacket) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LongestLinkPacket) ProtoMessage() {}
+
+func (x *LongestLinkPacket) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LongestLinkPacket.ProtoReflect.Descriptor instead.
+func (*LongestLinkPacket) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *LongestLinkPacket) GetPacketId() uint64 {
+	if x != nil {
+		return x.PacketId
+	}
+	return 0
+}
+
+func (x *LongestLinkPacket) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *LongestLinkPacket) GetSnr() float64 {
+	if x != nil {
+		return x.Snr
+	}
+	return 0
+}
+
+func (x *LongestLinkPacket) GetRssi() int32 {
+	if x != nil {
+		return x.Rssi
+	}
+	return 0
+}
+
+type DirectLongestLink struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	FromNodeId      uint32                 `protobuf:"varint,1,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
+	ToNodeId        uint32                 `protobuf:"varint,2,opt,name=to_node_id,json=toNodeId,proto3" json:"to_node_id,omitempty"`
+	DistanceKm      float64                `protobuf:"fixed64,3,opt,name=distance_km,json=distanceKm,proto3" json:"distance_km,omitempty"`
+	AvgSnr          float64                `protobuf:"fixed64,4,opt,name=avg_snr,json=avgSnr,proto3" json:"avg_snr,omitempty"`
+	LastSeen        *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	TracerouteCount uint64                 `protobuf:"varint,6,opt,name=traceroute_count,json=tracerouteCount,proto3" json:"traceroute_count,omitempty"`
+	RecentPackets   []*LongestLinkPacket   `protobuf:"bytes,7,rep,name=recent_packets,json=recentPackets,proto3" json:"recent_packets,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *DirectLongestLink) Reset() {
+	*x = DirectLongestLink{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DirectLongestLink) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DirectLongestLink) ProtoMessage() {}
+
+func (x *DirectLongestLink) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DirectLongestLink.ProtoReflect.Descriptor instead.
+func (*DirectLongestLink) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *DirectLongestLink) GetFromNodeId() uint32 {
+	if x != nil {
+		return x.FromNodeId
+	}
+	return 0
+}
+
+func (x *DirectLongestLink) GetToNodeId() uint32 {
+	if x != nil {
+		return x.ToNodeId
+	}
+	return 0
+}
+
+func (x *DirectLongestLink) GetDistanceKm() float64 {
+	if x != nil {
+		return x.DistanceKm
+	}
+	return 0
+}
+
+func (x *DirectLongestLink) GetAvgSnr() float64 {
+	if x != nil {
+		return x.AvgSnr
+	}
+	return 0
+}
+
+func (x *DirectLongestLink) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
+func (x *DirectLongestLink) GetTracerouteCount() uint64 {
+	if x != nil {
+		return x.TracerouteCount
+	}
+	return 0
+}
+
+func (x *DirectLongestLink) GetRecentPackets() []*LongestLinkPacket {
+	if x != nil {
+		return x.RecentPackets
+	}
+	return nil
+}
+
+type IndirectLongestPath struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	StartNodeId         uint32                 `protobuf:"varint,1,opt,name=start_node_id,json=startNodeId,proto3" json:"start_node_id,omitempty"`
+	EndNodeId           uint32                 `protobuf:"varint,2,opt,name=end_node_id,json=endNodeId,proto3" json:"end_node_id,omitempty"`
+	HopCount            uint32                 `protobuf:"varint,3,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"`
+	TotalDistanceKm     float64                `protobuf:"fixed64,4,opt,name=total_distance_km,json=totalDistanceKm,proto3" json:"total_distance_km,omitempty"`
+	AvgSnr              float64                `protobuf:"fixed64,5,opt,name=avg_snr,json=avgSnr,proto3" json:"avg_snr,omitempty"`
+	LastSeen            *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	TraceroutePacketIds []uint64               `protobuf:"varint,7,rep,packed,name=traceroute_packet_ids,json=traceroutePacketIds,proto3" json:"traceroute_packet_ids,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *IndirectLongestPath) Reset() {
+	*x = IndirectLongestPath{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IndirectLongestPath) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IndirectLongestPath) ProtoMessage() {}
+
+func (x *IndirectLongestPath) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IndirectLongestPath.ProtoReflect.Descriptor instead.
+func (*IndirectLongestPath) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *IndirectLongestPath) GetStartNodeId() uint32 {
+	if x != nil {
+		return x.StartNodeId
+	}
+	return 0
+}
+
+func (x *IndirectLongestPath) GetEndNodeId() uint32 {
+	if x != nil {
+		return x.EndNodeId
+	}
+	return 0
+}
+
+func (x *IndirectLongestPath) GetHopCount() uint32 {
+	if x != nil {
+		return x.HopCount
+	}
+	return 0
+}
+
+func (x *IndirectLongestPath) GetTotalDistanceKm() float64 {
+	if x != nil {
+		return x.TotalDistanceKm
+	}
+	return 0
+}
+
+func (x *IndirectLongestPath) GetAvgSnr() float64 {
+	if x != nil {
+		return x.AvgSnr
+	}
+	return 0
+}
+
+func (x *IndirectLongestPath) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
+func (x *IndirectLongestPath) GetTraceroutePacketIds() []uint64 {
+	if x != nil {
+		return x.TraceroutePacketIds
+	}
+	return nil
+}
+
+type LongestLinksStats struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	PacketsConsidered uint64                 `protobuf:"varint,1,opt,name=packets_considered,json=packetsConsidered,proto3" json:"packets_considered,omitempty"`
+	HopsProcessed     uint64                 `protobuf:"varint,2,opt,name=hops_processed,json=hopsProcessed,proto3" json:"hops_processed,omitempty"`
+	CacheHits         uint64                 `protobuf:"varint,3,opt,name=cache_hits,json=cacheHits,proto3" json:"cache_hits,omitempty"`
+	CacheMisses       uint64                 `protobuf:"varint,4,opt,name=cache_misses,json=cacheMisses,proto3" json:"cache_misses,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *LongestLinksStats) Reset() {
+	*x = LongestLinksStats{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LongestLinksStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LongestLinksStats) ProtoMessage() {}
+
+func (x *LongestLinksStats) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LongestLinksStats.ProtoReflect.Descriptor instead.
+func (*LongestLinksStats) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *LongestLinksStats) GetPacketsConsidered() uint64 {
+	if x != nil {
+		return x.PacketsConsidered
+	}
+	return 0
+}
+
+func (x *LongestLinksStats) GetHopsProcessed() uint64 {
+	if x != nil {
+		return x.HopsProcessed
+	}
+	return 0
+}
+
+func (x *LongestLinksStats) GetCacheHits() uint64 {
+	if x != nil {
+		return x.CacheHits
+	}
+	return 0
+}
+
+func (x *LongestLinksStats) GetCacheMisses() uint64 {
+	if x != nil {
+		return x.CacheMisses
+	}
+	return 0
+}
+
+type LongestLinksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DirectLinks   []*DirectLongestLink   `protobuf:"bytes,1,rep,name=direct_links,json=directLinks,proto3" json:"direct_links,omitempty"`
+	IndirectPaths []*IndirectLongestPath `protobuf:"bytes,2,rep,name=indirect_paths,json=indirectPaths,proto3" json:"indirect_paths,omitempty"`
+	Stats         *LongestLinksStats     `protobuf:"bytes,3,opt,name=stats,proto3" json:"stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LongestLinksResponse) Reset() {
+	*x = LongestLinksResponse{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LongestLinksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LongestLinksResponse) ProtoMessage() {}
+
+func (x *LongestLinksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LongestLinksResponse.ProtoReflect.Descriptor instead.
+func (*LongestLinksResponse) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *LongestLinksResponse) GetDirectLinks() []*DirectLongestLink {
+	if x != nil {
+		return x.DirectLinks
+	}
+	return nil
+}
+
+func (x *LongestLinksResponse) GetIndirectPaths() []*IndirectLongestPath {
+	if x != nil {
+		return x.IndirectPaths
+	}
+	return nil
+}
+
+func (x *LongestLinksResponse) GetStats() *LongestLinksStats {
+	if x != nil {
+		return x.Stats
+	}
+	return nil
+}
+
+type GatewayComparisonRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GatewayIdA    string                 `protobuf:"bytes,1,opt,name=gateway_id_a,json=gatewayIdA,proto3" json:"gateway_id_a,omitempty"`
+	GatewayIdB    string                 `protobuf:"bytes,2,opt,name=gateway_id_b,json=gatewayIdB,proto3" json:"gateway_id_b,omitempty"`
+	StartTime     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	EndTime       *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=end_time,json=endTime,proto3" json:"end_time,omitempty"`
+	MinSnr        float64                `protobuf:"fixed64,5,opt,name=min_snr,json=minSnr,proto3" json:"min_snr,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayComparisonRequest) Reset() {
+	*x = GatewayComparisonRequest{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayComparisonRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayComparisonRequest) ProtoMessage() {}
+
+func (x *GatewayComparisonRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayComparisonRequest.ProtoReflect.Descriptor instead.
+func (*GatewayComparisonRequest) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *GatewayComparisonRequest) GetGatewayIdA() string {
+	if x != nil {
+		return x.GatewayIdA
+	}
+	return ""
+}
+
+func (x *GatewayComparisonRequest) GetGatewayIdB() string {
+	if x != nil {
+		return x.GatewayIdB
+	}
+	return ""
+}
+
+func (x *GatewayComparisonRequest) GetStartTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartTime
+	}
+	return nil
+}
+
+func (x *GatewayComparisonRequest) GetEndTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EndTime
+	}
+	return nil
+}
+
+func (x *GatewayComparisonRequest) GetMinSnr() float64 {
+	if x != nil {
+		return x.MinSnr
+	}
+	return 0
+}
+
+type GatewayComparisonPacket struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PacketId      uint64                 `protobuf:"varint,1,opt,name=packet_id,json=packetId,proto3" json:"packet_id,omitempty"`
+	Timestamp     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	FromNodeId    uint32                 `protobuf:"varint,3,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
+	GatewayARssi  float64                `protobuf:"fixed64,4,opt,name=gateway_a_rssi,json=gatewayARssi,proto3" json:"gateway_a_rssi,omitempty"`
+	GatewayBRssi  float64                `protobuf:"fixed64,5,opt,name=gateway_b_rssi,json=gatewayBRssi,proto3" json:"gateway_b_rssi,omitempty"`
+	GatewayASnr   float64                `protobuf:"fixed64,6,opt,name=gateway_a_snr,json=gatewayASnr,proto3" json:"gateway_a_snr,omitempty"`
+	GatewayBSnr   float64                `protobuf:"fixed64,7,opt,name=gateway_b_snr,json=gatewayBSnr,proto3" json:"gateway_b_snr,omitempty"`
+	RssiDiff      float64                `protobuf:"fixed64,8,opt,name=rssi_diff,json=rssiDiff,proto3" json:"rssi_diff,omitempty"`
+	SnrDiff       float64                `protobuf:"fixed64,9,opt,name=snr_diff,json=snrDiff,proto3" json:"snr_diff,omitempty"`
+	PortnumName   string                 `protobuf:"bytes,10,opt,name=portnum_name,json=portnumName,proto3" json:"portnum_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayComparisonPacket) Reset() {
+	*x = GatewayComparisonPacket{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayComparisonPacket) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayComparisonPacket) ProtoMessage() {}
+
+func (x *GatewayComparisonPacket) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayComparisonPacket.ProtoReflect.Descriptor instead.
+func (*GatewayComparisonPacket) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *GatewayComparisonPacket) GetPacketId() uint64 {
+	if x != nil {
+		return x.PacketId
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetTimestamp() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Timestamp
+	}
+	return nil
+}
+
+func (x *GatewayComparisonPacket) GetFromNodeId() uint32 {
+	if x != nil {
+		return x.FromNodeId
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetGatewayARssi() float64 {
+	if x != nil {
+		return x.GatewayARssi
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetGatewayBRssi() float64 {
+	if x != nil {
+		return x.GatewayBRssi
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetGatewayASnr() float64 {
+	if x != nil {
+		return x.GatewayASnr
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetGatewayBSnr() float64 {
+	if x != nil {
+		return x.GatewayBSnr
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetRssiDiff() float64 {
+	if x != nil {
+		return x.RssiDiff
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetSnrDiff() float64 {
+	if x != nil {
+		return x.SnrDiff
+	}
+	return 0
+}
+
+func (x *GatewayComparisonPacket) GetPortnumName() string {
+	if x != nil {
+		return x.PortnumName
+	}
+	return ""
+}
+
+type GatewayComparisonResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	GatewayA      *GatewayOverview           `protobuf:"bytes,1,opt,name=gateway_a,json=gatewayA,proto3" json:"gateway_a,omitempty"`
+	GatewayB      *GatewayOverview           `protobuf:"bytes,2,opt,name=gateway_b,json=gatewayB,proto3" json:"gateway_b,omitempty"`
+	Packets       []*GatewayComparisonPacket `protobuf:"bytes,3,rep,name=packets,proto3" json:"packets,omitempty"`
+	AvgRssiDiff   float64                    `protobuf:"fixed64,4,opt,name=avg_rssi_diff,json=avgRssiDiff,proto3" json:"avg_rssi_diff,omitempty"`
+	AvgSnrDiff    float64                    `protobuf:"fixed64,5,opt,name=avg_snr_diff,json=avgSnrDiff,proto3" json:"avg_snr_diff,omitempty"`
+	FirstSeen     *timestamppb.Timestamp     `protobuf:"bytes,6,opt,name=first_seen,json=firstSeen,proto3" json:"first_seen,omitempty"`
+	LastSeen      *timestamppb.Timestamp     `protobuf:"bytes,7,opt,name=last_seen,json=lastSeen,proto3" json:"last_seen,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayComparisonResponse) Reset() {
+	*x = GatewayComparisonResponse{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[69]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayComparisonResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayComparisonResponse) ProtoMessage() {}
+
+func (x *GatewayComparisonResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[69]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayComparisonResponse.ProtoReflect.Descriptor instead.
+func (*GatewayComparisonResponse) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{69}
+}
+
+func (x *GatewayComparisonResponse) GetGatewayA() *GatewayOverview {
+	if x != nil {
+		return x.GatewayA
+	}
+	return nil
+}
+
+func (x *GatewayComparisonResponse) GetGatewayB() *GatewayOverview {
+	if x != nil {
+		return x.GatewayB
+	}
+	return nil
+}
+
+func (x *GatewayComparisonResponse) GetPackets() []*GatewayComparisonPacket {
+	if x != nil {
+		return x.Packets
+	}
+	return nil
+}
+
+func (x *GatewayComparisonResponse) GetAvgRssiDiff() float64 {
+	if x != nil {
+		return x.AvgRssiDiff
+	}
+	return 0
+}
+
+func (x *GatewayComparisonResponse) GetAvgSnrDiff() float64 {
+	if x != nil {
+		return x.AvgSnrDiff
+	}
+	return 0
+}
+
+func (x *GatewayComparisonResponse) GetFirstSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FirstSeen
+	}
+	return nil
+}
+
+func (x *GatewayComparisonResponse) GetLastSeen() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSeen
+	}
+	return nil
+}
+
+type GatewayCandidatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         uint32                 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	PopularOnly   bool                   `protobuf:"varint,3,opt,name=popular_only,json=popularOnly,proto3" json:"popular_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayCandidatesRequest) Reset() {
+	*x = GatewayCandidatesRequest{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[70]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayCandidatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayCandidatesRequest) ProtoMessage() {}
+
+func (x *GatewayCandidatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[70]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayCandidatesRequest.ProtoReflect.Descriptor instead.
+func (*GatewayCandidatesRequest) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{70}
+}
+
+func (x *GatewayCandidatesRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *GatewayCandidatesRequest) GetLimit() uint32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GatewayCandidatesRequest) GetPopularOnly() bool {
+	if x != nil {
+		return x.PopularOnly
+	}
+	return false
+}
+
+type GatewayCandidate struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	PacketCount   uint64                 `protobuf:"varint,3,opt,name=packet_count,json=packetCount,proto3" json:"packet_count,omitempty"`
+	NodeId        uint32                 `protobuf:"varint,4,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayCandidate) Reset() {
+	*x = GatewayCandidate{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[71]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayCandidate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayCandidate) ProtoMessage() {}
+
+func (x *GatewayCandidate) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[71]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayCandidate.ProtoReflect.Descriptor instead.
+func (*GatewayCandidate) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{71}
+}
+
+func (x *GatewayCandidate) GetGatewayId() string {
+	if x != nil {
+		return x.GatewayId
+	}
+	return ""
+}
+
+func (x *GatewayCandidate) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *GatewayCandidate) GetPacketCount() uint64 {
+	if x != nil {
+		return x.PacketCount
+	}
+	return 0
+}
+
+func (x *GatewayCandidate) GetNodeId() uint32 {
+	if x != nil {
+		return x.NodeId
+	}
+	return 0
+}
+
+type GatewayCandidatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Gateways      []*GatewayCandidate    `protobuf:"bytes,1,rep,name=gateways,proto3" json:"gateways,omitempty"`
+	TotalCount    uint64                 `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	IsPopular     bool                   `protobuf:"varint,3,opt,name=is_popular,json=isPopular,proto3" json:"is_popular,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayCandidatesResponse) Reset() {
+	*x = GatewayCandidatesResponse{}
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[72]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayCandidatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayCandidatesResponse) ProtoMessage() {}
+
+func (x *GatewayCandidatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[72]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayCandidatesResponse.ProtoReflect.Descriptor instead.
+func (*GatewayCandidatesResponse) Descriptor() ([]byte, []int) {
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{72}
+}
+
+func (x *GatewayCandidatesResponse) GetGateways() []*GatewayCandidate {
+	if x != nil {
+		return x.Gateways
+	}
+	return nil
+}
+
+func (x *GatewayCandidatesResponse) GetTotalCount() uint64 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *GatewayCandidatesResponse) GetIsPopular() bool {
+	if x != nil {
+		return x.IsPopular
+	}
+	return false
+}
+
 type PacketSuccessStats struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	TotalPackets        uint64                 `protobuf:"varint,1,opt,name=total_packets,json=totalPackets,proto3" json:"total_packets,omitempty"`
@@ -4049,7 +5445,7 @@ type PacketSuccessStats struct {
 
 func (x *PacketSuccessStats) Reset() {
 	*x = PacketSuccessStats{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[56]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4061,7 +5457,7 @@ func (x *PacketSuccessStats) String() string {
 func (*PacketSuccessStats) ProtoMessage() {}
 
 func (x *PacketSuccessStats) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[56]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4074,7 +5470,7 @@ func (x *PacketSuccessStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PacketSuccessStats.ProtoReflect.Descriptor instead.
 func (*PacketSuccessStats) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{56}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *PacketSuccessStats) GetTotalPackets() uint64 {
@@ -4108,7 +5504,7 @@ type NodeActivityBucket struct {
 
 func (x *NodeActivityBucket) Reset() {
 	*x = NodeActivityBucket{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[57]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4120,7 +5516,7 @@ func (x *NodeActivityBucket) String() string {
 func (*NodeActivityBucket) ProtoMessage() {}
 
 func (x *NodeActivityBucket) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[57]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4133,7 +5529,7 @@ func (x *NodeActivityBucket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeActivityBucket.ProtoReflect.Descriptor instead.
 func (*NodeActivityBucket) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{57}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *NodeActivityBucket) GetLabel() string {
@@ -4160,7 +5556,7 @@ type SignalQualitySummary struct {
 
 func (x *SignalQualitySummary) Reset() {
 	*x = SignalQualitySummary{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[58]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4172,7 +5568,7 @@ func (x *SignalQualitySummary) String() string {
 func (*SignalQualitySummary) ProtoMessage() {}
 
 func (x *SignalQualitySummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[58]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4185,7 +5581,7 @@ func (x *SignalQualitySummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SignalQualitySummary.ProtoReflect.Descriptor instead.
 func (*SignalQualitySummary) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{58}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *SignalQualitySummary) GetAvgRssi() float64 {
@@ -4212,7 +5608,7 @@ type TemporalBucket struct {
 
 func (x *TemporalBucket) Reset() {
 	*x = TemporalBucket{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[59]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4224,7 +5620,7 @@ func (x *TemporalBucket) String() string {
 func (*TemporalBucket) ProtoMessage() {}
 
 func (x *TemporalBucket) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[59]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4237,7 +5633,7 @@ func (x *TemporalBucket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TemporalBucket.ProtoReflect.Descriptor instead.
 func (*TemporalBucket) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{59}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *TemporalBucket) GetBucketStart() *timestamppb.Timestamp {
@@ -4265,7 +5661,7 @@ type TopNode struct {
 
 func (x *TopNode) Reset() {
 	*x = TopNode{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[60]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4277,7 +5673,7 @@ func (x *TopNode) String() string {
 func (*TopNode) ProtoMessage() {}
 
 func (x *TopNode) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[60]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4290,7 +5686,7 @@ func (x *TopNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TopNode.ProtoReflect.Descriptor instead.
 func (*TopNode) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{60}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *TopNode) GetNodeId() uint32 {
@@ -4324,7 +5720,7 @@ type DistributionEntry struct {
 
 func (x *DistributionEntry) Reset() {
 	*x = DistributionEntry{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[61]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4336,7 +5732,7 @@ func (x *DistributionEntry) String() string {
 func (*DistributionEntry) ProtoMessage() {}
 
 func (x *DistributionEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[61]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4349,7 +5745,7 @@ func (x *DistributionEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DistributionEntry.ProtoReflect.Descriptor instead.
 func (*DistributionEntry) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{61}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *DistributionEntry) GetKey() string {
@@ -4377,7 +5773,7 @@ type GetAnalyticsSummaryRequest struct {
 
 func (x *GetAnalyticsSummaryRequest) Reset() {
 	*x = GetAnalyticsSummaryRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[62]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4389,7 +5785,7 @@ func (x *GetAnalyticsSummaryRequest) String() string {
 func (*GetAnalyticsSummaryRequest) ProtoMessage() {}
 
 func (x *GetAnalyticsSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[62]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4402,7 +5798,7 @@ func (x *GetAnalyticsSummaryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAnalyticsSummaryRequest.ProtoReflect.Descriptor instead.
 func (*GetAnalyticsSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{62}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *GetAnalyticsSummaryRequest) GetGatewayId() string {
@@ -4441,7 +5837,7 @@ type GetAnalyticsSummaryResponse struct {
 
 func (x *GetAnalyticsSummaryResponse) Reset() {
 	*x = GetAnalyticsSummaryResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[63]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4453,7 +5849,7 @@ func (x *GetAnalyticsSummaryResponse) String() string {
 func (*GetAnalyticsSummaryResponse) ProtoMessage() {}
 
 func (x *GetAnalyticsSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[63]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4466,7 +5862,7 @@ func (x *GetAnalyticsSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAnalyticsSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetAnalyticsSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{63}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *GetAnalyticsSummaryResponse) GetPacketSuccess() *PacketSuccessStats {
@@ -4532,7 +5928,7 @@ type TracerouteHopFilter struct {
 
 func (x *TracerouteHopFilter) Reset() {
 	*x = TracerouteHopFilter{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[64]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4544,7 +5940,7 @@ func (x *TracerouteHopFilter) String() string {
 func (*TracerouteHopFilter) ProtoMessage() {}
 
 func (x *TracerouteHopFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[64]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4557,7 +5953,7 @@ func (x *TracerouteHopFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteHopFilter.ProtoReflect.Descriptor instead.
 func (*TracerouteHopFilter) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{64}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *TracerouteHopFilter) GetPacketId() uint64 {
@@ -4620,7 +6016,7 @@ type TracerouteHop struct {
 
 func (x *TracerouteHop) Reset() {
 	*x = TracerouteHop{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[65]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4632,7 +6028,7 @@ func (x *TracerouteHop) String() string {
 func (*TracerouteHop) ProtoMessage() {}
 
 func (x *TracerouteHop) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[65]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4645,7 +6041,7 @@ func (x *TracerouteHop) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteHop.ProtoReflect.Descriptor instead.
 func (*TracerouteHop) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{65}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *TracerouteHop) GetId() uint64 {
@@ -4728,7 +6124,7 @@ type ListTracerouteHopsRequest struct {
 
 func (x *ListTracerouteHopsRequest) Reset() {
 	*x = ListTracerouteHopsRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[66]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4740,7 +6136,7 @@ func (x *ListTracerouteHopsRequest) String() string {
 func (*ListTracerouteHopsRequest) ProtoMessage() {}
 
 func (x *ListTracerouteHopsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[66]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4753,7 +6149,7 @@ func (x *ListTracerouteHopsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTracerouteHopsRequest.ProtoReflect.Descriptor instead.
 func (*ListTracerouteHopsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{66}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *ListTracerouteHopsRequest) GetFilter() *TracerouteHopFilter {
@@ -4780,7 +6176,7 @@ type ListTracerouteHopsResponse struct {
 
 func (x *ListTracerouteHopsResponse) Reset() {
 	*x = ListTracerouteHopsResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[67]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4792,7 +6188,7 @@ func (x *ListTracerouteHopsResponse) String() string {
 func (*ListTracerouteHopsResponse) ProtoMessage() {}
 
 func (x *ListTracerouteHopsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[67]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4805,7 +6201,7 @@ func (x *ListTracerouteHopsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTracerouteHopsResponse.ProtoReflect.Descriptor instead.
 func (*ListTracerouteHopsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{67}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *ListTracerouteHopsResponse) GetHops() []*TracerouteHop {
@@ -4833,7 +6229,7 @@ type TracerouteGraphRequest struct {
 
 func (x *TracerouteGraphRequest) Reset() {
 	*x = TracerouteGraphRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[68]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4845,7 +6241,7 @@ func (x *TracerouteGraphRequest) String() string {
 func (*TracerouteGraphRequest) ProtoMessage() {}
 
 func (x *TracerouteGraphRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[68]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4858,7 +6254,7 @@ func (x *TracerouteGraphRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteGraphRequest.ProtoReflect.Descriptor instead.
 func (*TracerouteGraphRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{68}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *TracerouteGraphRequest) GetGatewayId() string {
@@ -4892,7 +6288,7 @@ type TracerouteGraphNode struct {
 
 func (x *TracerouteGraphNode) Reset() {
 	*x = TracerouteGraphNode{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[69]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4904,7 +6300,7 @@ func (x *TracerouteGraphNode) String() string {
 func (*TracerouteGraphNode) ProtoMessage() {}
 
 func (x *TracerouteGraphNode) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[69]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4917,7 +6313,7 @@ func (x *TracerouteGraphNode) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteGraphNode.ProtoReflect.Descriptor instead.
 func (*TracerouteGraphNode) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{69}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *TracerouteGraphNode) GetNodeId() uint32 {
@@ -4947,7 +6343,7 @@ type TracerouteGraphEdge struct {
 
 func (x *TracerouteGraphEdge) Reset() {
 	*x = TracerouteGraphEdge{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[70]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4959,7 +6355,7 @@ func (x *TracerouteGraphEdge) String() string {
 func (*TracerouteGraphEdge) ProtoMessage() {}
 
 func (x *TracerouteGraphEdge) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[70]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4972,7 +6368,7 @@ func (x *TracerouteGraphEdge) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteGraphEdge.ProtoReflect.Descriptor instead.
 func (*TracerouteGraphEdge) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{70}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *TracerouteGraphEdge) GetFromNodeId() uint32 {
@@ -5020,7 +6416,7 @@ type TracerouteGraphResponse struct {
 
 func (x *TracerouteGraphResponse) Reset() {
 	*x = TracerouteGraphResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[71]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5032,7 +6428,7 @@ func (x *TracerouteGraphResponse) String() string {
 func (*TracerouteGraphResponse) ProtoMessage() {}
 
 func (x *TracerouteGraphResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[71]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5045,7 +6441,7 @@ func (x *TracerouteGraphResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteGraphResponse.ProtoReflect.Descriptor instead.
 func (*TracerouteGraphResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{71}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *TracerouteGraphResponse) GetNodes() []*TracerouteGraphNode {
@@ -5070,7 +6466,7 @@ type HealthCheckRequest struct {
 
 func (x *HealthCheckRequest) Reset() {
 	*x = HealthCheckRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[72]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5082,7 +6478,7 @@ func (x *HealthCheckRequest) String() string {
 func (*HealthCheckRequest) ProtoMessage() {}
 
 func (x *HealthCheckRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[72]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5095,7 +6491,7 @@ func (x *HealthCheckRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthCheckRequest.ProtoReflect.Descriptor instead.
 func (*HealthCheckRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{72}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{89}
 }
 
 type HealthCheckResponse struct {
@@ -5108,7 +6504,7 @@ type HealthCheckResponse struct {
 
 func (x *HealthCheckResponse) Reset() {
 	*x = HealthCheckResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[73]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5120,7 +6516,7 @@ func (x *HealthCheckResponse) String() string {
 func (*HealthCheckResponse) ProtoMessage() {}
 
 func (x *HealthCheckResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[73]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5133,7 +6529,7 @@ func (x *HealthCheckResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthCheckResponse.ProtoReflect.Descriptor instead.
 func (*HealthCheckResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{73}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *HealthCheckResponse) GetReady() bool {
@@ -5158,7 +6554,7 @@ type GetVersionRequest struct {
 
 func (x *GetVersionRequest) Reset() {
 	*x = GetVersionRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[74]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5170,7 +6566,7 @@ func (x *GetVersionRequest) String() string {
 func (*GetVersionRequest) ProtoMessage() {}
 
 func (x *GetVersionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[74]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5183,7 +6579,7 @@ func (x *GetVersionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVersionRequest.ProtoReflect.Descriptor instead.
 func (*GetVersionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{74}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{91}
 }
 
 type VersionResponse struct {
@@ -5197,7 +6593,7 @@ type VersionResponse struct {
 
 func (x *VersionResponse) Reset() {
 	*x = VersionResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[75]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5209,7 +6605,7 @@ func (x *VersionResponse) String() string {
 func (*VersionResponse) ProtoMessage() {}
 
 func (x *VersionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[75]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5222,7 +6618,7 @@ func (x *VersionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VersionResponse.ProtoReflect.Descriptor instead.
 func (*VersionResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{75}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *VersionResponse) GetVersion() string {
@@ -5258,7 +6654,7 @@ type TracerouteGatewayObservation struct {
 
 func (x *TracerouteGatewayObservation) Reset() {
 	*x = TracerouteGatewayObservation{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[76]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5270,7 +6666,7 @@ func (x *TracerouteGatewayObservation) String() string {
 func (*TracerouteGatewayObservation) ProtoMessage() {}
 
 func (x *TracerouteGatewayObservation) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[76]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5283,7 +6679,7 @@ func (x *TracerouteGatewayObservation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TracerouteGatewayObservation.ProtoReflect.Descriptor instead.
 func (*TracerouteGatewayObservation) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{76}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *TracerouteGatewayObservation) GetGatewayId() string {
@@ -5347,7 +6743,7 @@ type TraceroutePacket struct {
 
 func (x *TraceroutePacket) Reset() {
 	*x = TraceroutePacket{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[77]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5359,7 +6755,7 @@ func (x *TraceroutePacket) String() string {
 func (*TraceroutePacket) ProtoMessage() {}
 
 func (x *TraceroutePacket) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[77]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5372,7 +6768,7 @@ func (x *TraceroutePacket) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TraceroutePacket.ProtoReflect.Descriptor instead.
 func (*TraceroutePacket) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{77}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *TraceroutePacket) GetId() uint64 {
@@ -5570,7 +6966,7 @@ type TraceroutePacketFilter struct {
 
 func (x *TraceroutePacketFilter) Reset() {
 	*x = TraceroutePacketFilter{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[78]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5582,7 +6978,7 @@ func (x *TraceroutePacketFilter) String() string {
 func (*TraceroutePacketFilter) ProtoMessage() {}
 
 func (x *TraceroutePacketFilter) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[78]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5595,7 +6991,7 @@ func (x *TraceroutePacketFilter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TraceroutePacketFilter.ProtoReflect.Descriptor instead.
 func (*TraceroutePacketFilter) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{78}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *TraceroutePacketFilter) GetStartTime() *timestamppb.Timestamp {
@@ -5696,7 +7092,7 @@ type ListTraceroutePacketsRequest struct {
 
 func (x *ListTraceroutePacketsRequest) Reset() {
 	*x = ListTraceroutePacketsRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[79]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5708,7 +7104,7 @@ func (x *ListTraceroutePacketsRequest) String() string {
 func (*ListTraceroutePacketsRequest) ProtoMessage() {}
 
 func (x *ListTraceroutePacketsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[79]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5721,7 +7117,7 @@ func (x *ListTraceroutePacketsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTraceroutePacketsRequest.ProtoReflect.Descriptor instead.
 func (*ListTraceroutePacketsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{79}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *ListTraceroutePacketsRequest) GetFilter() *TraceroutePacketFilter {
@@ -5780,7 +7176,7 @@ type ListTraceroutePacketsResponse struct {
 
 func (x *ListTraceroutePacketsResponse) Reset() {
 	*x = ListTraceroutePacketsResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[80]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5792,7 +7188,7 @@ func (x *ListTraceroutePacketsResponse) String() string {
 func (*ListTraceroutePacketsResponse) ProtoMessage() {}
 
 func (x *ListTraceroutePacketsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[80]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5805,7 +7201,7 @@ func (x *ListTraceroutePacketsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTraceroutePacketsResponse.ProtoReflect.Descriptor instead.
 func (*ListTraceroutePacketsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{80}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *ListTraceroutePacketsResponse) GetPackets() []*TraceroutePacket {
@@ -5859,7 +7255,7 @@ type GetTracerouteDetailsRequest struct {
 
 func (x *GetTracerouteDetailsRequest) Reset() {
 	*x = GetTracerouteDetailsRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[81]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5871,7 +7267,7 @@ func (x *GetTracerouteDetailsRequest) String() string {
 func (*GetTracerouteDetailsRequest) ProtoMessage() {}
 
 func (x *GetTracerouteDetailsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[81]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5884,7 +7280,7 @@ func (x *GetTracerouteDetailsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTracerouteDetailsRequest.ProtoReflect.Descriptor instead.
 func (*GetTracerouteDetailsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{81}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *GetTracerouteDetailsRequest) GetPacketId() uint64 {
@@ -5904,7 +7300,7 @@ type GetTracerouteDetailsResponse struct {
 
 func (x *GetTracerouteDetailsResponse) Reset() {
 	*x = GetTracerouteDetailsResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[82]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5916,7 +7312,7 @@ func (x *GetTracerouteDetailsResponse) String() string {
 func (*GetTracerouteDetailsResponse) ProtoMessage() {}
 
 func (x *GetTracerouteDetailsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[82]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5929,7 +7325,7 @@ func (x *GetTracerouteDetailsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTracerouteDetailsResponse.ProtoReflect.Descriptor instead.
 func (*GetTracerouteDetailsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{82}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *GetTracerouteDetailsResponse) GetPacket() *TraceroutePacket {
@@ -5961,7 +7357,7 @@ type NodeDirectReception struct {
 
 func (x *NodeDirectReception) Reset() {
 	*x = NodeDirectReception{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[83]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5973,7 +7369,7 @@ func (x *NodeDirectReception) String() string {
 func (*NodeDirectReception) ProtoMessage() {}
 
 func (x *NodeDirectReception) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[83]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5986,7 +7382,7 @@ func (x *NodeDirectReception) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeDirectReception.ProtoReflect.Descriptor instead.
 func (*NodeDirectReception) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{83}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *NodeDirectReception) GetPacketId() uint64 {
@@ -6049,7 +7445,7 @@ type ListNodeDirectReceptionsRequest struct {
 
 func (x *ListNodeDirectReceptionsRequest) Reset() {
 	*x = ListNodeDirectReceptionsRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[84]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6061,7 +7457,7 @@ func (x *ListNodeDirectReceptionsRequest) String() string {
 func (*ListNodeDirectReceptionsRequest) ProtoMessage() {}
 
 func (x *ListNodeDirectReceptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[84]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6074,7 +7470,7 @@ func (x *ListNodeDirectReceptionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeDirectReceptionsRequest.ProtoReflect.Descriptor instead.
 func (*ListNodeDirectReceptionsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{84}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *ListNodeDirectReceptionsRequest) GetNodeId() uint32 {
@@ -6107,7 +7503,7 @@ type ListNodeDirectReceptionsResponse struct {
 
 func (x *ListNodeDirectReceptionsResponse) Reset() {
 	*x = ListNodeDirectReceptionsResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[85]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6119,7 +7515,7 @@ func (x *ListNodeDirectReceptionsResponse) String() string {
 func (*ListNodeDirectReceptionsResponse) ProtoMessage() {}
 
 func (x *ListNodeDirectReceptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[85]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6132,7 +7528,7 @@ func (x *ListNodeDirectReceptionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeDirectReceptionsResponse.ProtoReflect.Descriptor instead.
 func (*ListNodeDirectReceptionsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{85}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *ListNodeDirectReceptionsResponse) GetReceptions() []*NodeDirectReception {
@@ -6151,7 +7547,7 @@ type ListNodeNamesRequest struct {
 
 func (x *ListNodeNamesRequest) Reset() {
 	*x = ListNodeNamesRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[86]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6163,7 +7559,7 @@ func (x *ListNodeNamesRequest) String() string {
 func (*ListNodeNamesRequest) ProtoMessage() {}
 
 func (x *ListNodeNamesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[86]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6176,7 +7572,7 @@ func (x *ListNodeNamesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeNamesRequest.ProtoReflect.Descriptor instead.
 func (*ListNodeNamesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{86}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *ListNodeNamesRequest) GetNodeIds() []uint32 {
@@ -6197,7 +7593,7 @@ type NodeNameEntry struct {
 
 func (x *NodeNameEntry) Reset() {
 	*x = NodeNameEntry{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[87]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6209,7 +7605,7 @@ func (x *NodeNameEntry) String() string {
 func (*NodeNameEntry) ProtoMessage() {}
 
 func (x *NodeNameEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[87]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6222,7 +7618,7 @@ func (x *NodeNameEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeNameEntry.ProtoReflect.Descriptor instead.
 func (*NodeNameEntry) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{87}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *NodeNameEntry) GetNodeId() uint32 {
@@ -6255,7 +7651,7 @@ type ListNodeNamesResponse struct {
 
 func (x *ListNodeNamesResponse) Reset() {
 	*x = ListNodeNamesResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[88]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6267,7 +7663,7 @@ func (x *ListNodeNamesResponse) String() string {
 func (*ListNodeNamesResponse) ProtoMessage() {}
 
 func (x *ListNodeNamesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[88]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6280,7 +7676,7 @@ func (x *ListNodeNamesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodeNamesResponse.ProtoReflect.Descriptor instead.
 func (*ListNodeNamesResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{88}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *ListNodeNamesResponse) GetEntries() []*NodeNameEntry {
@@ -6298,7 +7694,7 @@ type ListPrimaryChannelsRequest struct {
 
 func (x *ListPrimaryChannelsRequest) Reset() {
 	*x = ListPrimaryChannelsRequest{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[89]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6310,7 +7706,7 @@ func (x *ListPrimaryChannelsRequest) String() string {
 func (*ListPrimaryChannelsRequest) ProtoMessage() {}
 
 func (x *ListPrimaryChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[89]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6323,7 +7719,7 @@ func (x *ListPrimaryChannelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPrimaryChannelsRequest.ProtoReflect.Descriptor instead.
 func (*ListPrimaryChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{89}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{106}
 }
 
 type ListPrimaryChannelsResponse struct {
@@ -6335,7 +7731,7 @@ type ListPrimaryChannelsResponse struct {
 
 func (x *ListPrimaryChannelsResponse) Reset() {
 	*x = ListPrimaryChannelsResponse{}
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[90]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6347,7 +7743,7 @@ func (x *ListPrimaryChannelsResponse) String() string {
 func (*ListPrimaryChannelsResponse) ProtoMessage() {}
 
 func (x *ListPrimaryChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[90]
+	mi := &file_proto_meshpipe_v1_data_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6360,7 +7756,7 @@ func (x *ListPrimaryChannelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPrimaryChannelsResponse.ProtoReflect.Descriptor instead.
 func (*ListPrimaryChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{90}
+	return file_proto_meshpipe_v1_data_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *ListPrimaryChannelsResponse) GetChannels() []string {
@@ -6761,11 +8157,14 @@ const file_proto_meshpipe_v1_data_proto_rawDesc = "" +
 	"\anode_id\x18\x01 \x01(\rR\x06nodeId\"{\n" +
 	"\x18GetNodeAnalyticsResponse\x12%\n" +
 	"\x04node\x18\x01 \x01(\v2\x11.meshpipe.v1.NodeR\x04node\x128\n" +
-	"\tanalytics\x18\x02 \x01(\v2\x1a.meshpipe.v1.NodeAnalyticsR\tanalytics\"P\n" +
+	"\tanalytics\x18\x02 \x01(\v2\x1a.meshpipe.v1.NodeAnalyticsR\tanalytics\"\xc2\x01\n" +
 	"\x19GetGatewayOverviewRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\rR\x05limit\x12\x1d\n" +
 	"\n" +
-	"gateway_id\x18\x02 \x01(\tR\tgatewayId\"\xd1\x02\n" +
+	"gateway_id\x18\x02 \x01(\tR\tgatewayId\x129\n" +
+	"\n" +
+	"start_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
+	"\bend_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\"\xd1\x02\n" +
 	"\x0fGatewayOverview\x12\x1d\n" +
 	"\n" +
 	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12!\n" +
@@ -6777,7 +8176,140 @@ const file_proto_meshpipe_v1_data_proto_rawDesc = "" +
 	"\x0fdiversity_score\x18\a \x01(\x01R\x0ediversityScore\x12?\n" +
 	"\x1cnodes_with_multiple_gateways\x18\b \x01(\rR\x19nodesWithMultipleGateways\"V\n" +
 	"\x1aGetGatewayOverviewResponse\x128\n" +
-	"\bgateways\x18\x01 \x03(\v2\x1c.meshpipe.v1.GatewayOverviewR\bgateways\"\x9c\x01\n" +
+	"\bgateways\x18\x01 \x03(\v2\x1c.meshpipe.v1.GatewayOverviewR\bgateways\"\xb4\x02\n" +
+	"\x16NetworkTopologyRequest\x129\n" +
+	"\n" +
+	"start_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
+	"\bend_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12\x1b\n" +
+	"\tmax_hours\x18\x03 \x01(\rR\bmaxHours\x12\x17\n" +
+	"\amin_snr\x18\x04 \x01(\x01R\x06minSnr\x120\n" +
+	"\x14include_packet_links\x18\x05 \x01(\bR\x12includePacketLinks\x12!\n" +
+	"\fpacket_limit\x18\x06 \x01(\rR\vpacketLimit\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\a \x01(\tR\tgatewayId\"\x8c\x02\n" +
+	"\x14NetworkTopologyStats\x12)\n" +
+	"\x10packets_analyzed\x18\x01 \x01(\x04R\x0fpacketsAnalyzed\x12/\n" +
+	"\x14packets_with_rf_hops\x18\x02 \x01(\x04R\x11packetsWithRfHops\x12\"\n" +
+	"\rtotal_rf_hops\x18\x03 \x01(\x04R\vtotalRfHops\x121\n" +
+	"\x15links_filtered_by_snr\x18\x04 \x01(\x04R\x12linksFilteredBySnr\x12A\n" +
+	"\x1elinks_filtered_due_to_snr_zero\x18\x05 \x01(\x04R\x19linksFilteredDueToSnrZero\"\xc3\x02\n" +
+	"\vNetworkNode\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\rR\x06nodeId\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
+	"\blatitude\x18\x03 \x01(\x01R\blatitude\x12\x1c\n" +
+	"\tlongitude\x18\x04 \x01(\x01R\tlongitude\x12\x17\n" +
+	"\aavg_snr\x18\x05 \x01(\x01R\x06avgSnr\x12\x19\n" +
+	"\bavg_rssi\x18\x06 \x01(\x01R\aavgRssi\x12%\n" +
+	"\x0eneighbor_count\x18\a \x01(\rR\rneighborCount\x127\n" +
+	"\tlast_seen\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12\x12\n" +
+	"\x04role\x18\t \x01(\tR\x04role\x12\x16\n" +
+	"\x06region\x18\n" +
+	" \x01(\tR\x06region\"\x82\x03\n" +
+	"\vNetworkLink\x12$\n" +
+	"\x0esource_node_id\x18\x01 \x01(\rR\fsourceNodeId\x12$\n" +
+	"\x0etarget_node_id\x18\x02 \x01(\rR\ftargetNodeId\x12\x17\n" +
+	"\aavg_snr\x18\x03 \x01(\x01R\x06avgSnr\x12!\n" +
+	"\fpacket_count\x18\x04 \x01(\x04R\vpacketCount\x12)\n" +
+	"\x10traceroute_count\x18\x05 \x01(\x04R\x0ftracerouteCount\x127\n" +
+	"\tlast_seen\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12\x1f\n" +
+	"\vdistance_km\x18\a \x01(\x01R\n" +
+	"distanceKm\x12\x1a\n" +
+	"\bstrength\x18\b \x01(\x01R\bstrength\x12$\n" +
+	"\x0elast_packet_id\x18\t \x01(\x04R\flastPacketId\x12$\n" +
+	"\rbidirectional\x18\n" +
+	" \x01(\bR\rbidirectional\"\xb2\x01\n" +
+	"\x17NetworkTopologyResponse\x12.\n" +
+	"\x05nodes\x18\x01 \x03(\v2\x18.meshpipe.v1.NetworkNodeR\x05nodes\x12.\n" +
+	"\x05links\x18\x02 \x03(\v2\x18.meshpipe.v1.NetworkLinkR\x05links\x127\n" +
+	"\x05stats\x18\x03 \x01(\v2!.meshpipe.v1.NetworkTopologyStatsR\x05stats\"\x9e\x01\n" +
+	"\x13LongestLinksRequest\x12&\n" +
+	"\x0fmin_distance_km\x18\x01 \x01(\x01R\rminDistanceKm\x12\x17\n" +
+	"\amin_snr\x18\x02 \x01(\x01R\x06minSnr\x12\x1f\n" +
+	"\vmax_results\x18\x03 \x01(\rR\n" +
+	"maxResults\x12%\n" +
+	"\x0elookback_hours\x18\x04 \x01(\rR\rlookbackHours\"\x90\x01\n" +
+	"\x11LongestLinkPacket\x12\x1b\n" +
+	"\tpacket_id\x18\x01 \x01(\x04R\bpacketId\x128\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x10\n" +
+	"\x03snr\x18\x03 \x01(\x01R\x03snr\x12\x12\n" +
+	"\x04rssi\x18\x04 \x01(\x11R\x04rssi\"\xb8\x02\n" +
+	"\x11DirectLongestLink\x12 \n" +
+	"\ffrom_node_id\x18\x01 \x01(\rR\n" +
+	"fromNodeId\x12\x1c\n" +
+	"\n" +
+	"to_node_id\x18\x02 \x01(\rR\btoNodeId\x12\x1f\n" +
+	"\vdistance_km\x18\x03 \x01(\x01R\n" +
+	"distanceKm\x12\x17\n" +
+	"\aavg_snr\x18\x04 \x01(\x01R\x06avgSnr\x127\n" +
+	"\tlast_seen\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x12)\n" +
+	"\x10traceroute_count\x18\x06 \x01(\x04R\x0ftracerouteCount\x12E\n" +
+	"\x0erecent_packets\x18\a \x03(\v2\x1e.meshpipe.v1.LongestLinkPacketR\rrecentPackets\"\xa8\x02\n" +
+	"\x13IndirectLongestPath\x12\"\n" +
+	"\rstart_node_id\x18\x01 \x01(\rR\vstartNodeId\x12\x1e\n" +
+	"\vend_node_id\x18\x02 \x01(\rR\tendNodeId\x12\x1b\n" +
+	"\thop_count\x18\x03 \x01(\rR\bhopCount\x12*\n" +
+	"\x11total_distance_km\x18\x04 \x01(\x01R\x0ftotalDistanceKm\x12\x17\n" +
+	"\aavg_snr\x18\x05 \x01(\x01R\x06avgSnr\x127\n" +
+	"\tlast_seen\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\x122\n" +
+	"\x15traceroute_packet_ids\x18\a \x03(\x04R\x13traceroutePacketIds\"\xab\x01\n" +
+	"\x11LongestLinksStats\x12-\n" +
+	"\x12packets_considered\x18\x01 \x01(\x04R\x11packetsConsidered\x12%\n" +
+	"\x0ehops_processed\x18\x02 \x01(\x04R\rhopsProcessed\x12\x1d\n" +
+	"\n" +
+	"cache_hits\x18\x03 \x01(\x04R\tcacheHits\x12!\n" +
+	"\fcache_misses\x18\x04 \x01(\x04R\vcacheMisses\"\xd8\x01\n" +
+	"\x14LongestLinksResponse\x12A\n" +
+	"\fdirect_links\x18\x01 \x03(\v2\x1e.meshpipe.v1.DirectLongestLinkR\vdirectLinks\x12G\n" +
+	"\x0eindirect_paths\x18\x02 \x03(\v2 .meshpipe.v1.IndirectLongestPathR\rindirectPaths\x124\n" +
+	"\x05stats\x18\x03 \x01(\v2\x1e.meshpipe.v1.LongestLinksStatsR\x05stats\"\xe9\x01\n" +
+	"\x18GatewayComparisonRequest\x12 \n" +
+	"\fgateway_id_a\x18\x01 \x01(\tR\n" +
+	"gatewayIdA\x12 \n" +
+	"\fgateway_id_b\x18\x02 \x01(\tR\n" +
+	"gatewayIdB\x129\n" +
+	"\n" +
+	"start_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
+	"\bend_time\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12\x17\n" +
+	"\amin_snr\x18\x05 \x01(\x01R\x06minSnr\"\x81\x03\n" +
+	"\x17GatewayComparisonPacket\x12\x1b\n" +
+	"\tpacket_id\x18\x01 \x01(\x04R\bpacketId\x128\n" +
+	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12 \n" +
+	"\ffrom_node_id\x18\x03 \x01(\rR\n" +
+	"fromNodeId\x12$\n" +
+	"\x0egateway_a_rssi\x18\x04 \x01(\x01R\fgatewayARssi\x12$\n" +
+	"\x0egateway_b_rssi\x18\x05 \x01(\x01R\fgatewayBRssi\x12\"\n" +
+	"\rgateway_a_snr\x18\x06 \x01(\x01R\vgatewayASnr\x12\"\n" +
+	"\rgateway_b_snr\x18\a \x01(\x01R\vgatewayBSnr\x12\x1b\n" +
+	"\trssi_diff\x18\b \x01(\x01R\brssiDiff\x12\x19\n" +
+	"\bsnr_diff\x18\t \x01(\x01R\asnrDiff\x12!\n" +
+	"\fportnum_name\x18\n" +
+	" \x01(\tR\vportnumName\"\x8b\x03\n" +
+	"\x19GatewayComparisonResponse\x129\n" +
+	"\tgateway_a\x18\x01 \x01(\v2\x1c.meshpipe.v1.GatewayOverviewR\bgatewayA\x129\n" +
+	"\tgateway_b\x18\x02 \x01(\v2\x1c.meshpipe.v1.GatewayOverviewR\bgatewayB\x12>\n" +
+	"\apackets\x18\x03 \x03(\v2$.meshpipe.v1.GatewayComparisonPacketR\apackets\x12\"\n" +
+	"\ravg_rssi_diff\x18\x04 \x01(\x01R\vavgRssiDiff\x12 \n" +
+	"\favg_snr_diff\x18\x05 \x01(\x01R\n" +
+	"avgSnrDiff\x129\n" +
+	"\n" +
+	"first_seen\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tfirstSeen\x127\n" +
+	"\tlast_seen\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\blastSeen\"i\n" +
+	"\x18GatewayCandidatesRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\rR\x05limit\x12!\n" +
+	"\fpopular_only\x18\x03 \x01(\bR\vpopularOnly\"\x90\x01\n" +
+	"\x10GatewayCandidate\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12!\n" +
+	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12!\n" +
+	"\fpacket_count\x18\x03 \x01(\x04R\vpacketCount\x12\x17\n" +
+	"\anode_id\x18\x04 \x01(\rR\x06nodeId\"\x96\x01\n" +
+	"\x19GatewayCandidatesResponse\x129\n" +
+	"\bgateways\x18\x01 \x03(\v2\x1d.meshpipe.v1.GatewayCandidateR\bgateways\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x04R\n" +
+	"totalCount\x12\x1d\n" +
+	"\n" +
+	"is_popular\x18\x03 \x01(\bR\tisPopular\"\x9c\x01\n" +
 	"\x12PacketSuccessStats\x12#\n" +
 	"\rtotal_packets\x18\x01 \x01(\x04R\ftotalPackets\x12-\n" +
 	"\x12successful_packets\x18\x02 \x01(\x04R\x11successfulPackets\x122\n" +
@@ -6983,7 +8515,7 @@ const file_proto_meshpipe_v1_data_proto_rawDesc = "" +
 	"\aentries\x18\x01 \x03(\v2\x1a.meshpipe.v1.NodeNameEntryR\aentries\"\x1c\n" +
 	"\x1aListPrimaryChannelsRequest\"9\n" +
 	"\x1bListPrimaryChannelsResponse\x12\x1a\n" +
-	"\bchannels\x18\x01 \x03(\tR\bchannels2\x8a\x12\n" +
+	"\bchannels\x18\x01 \x03(\tR\bchannels2\x9a\x15\n" +
 	"\fMeshpipeData\x12R\n" +
 	"\x11GetDashboardStats\x12\x1d.meshpipe.v1.DashboardRequest\x1a\x1e.meshpipe.v1.DashboardResponse\x12P\n" +
 	"\vListPackets\x12\x1f.meshpipe.v1.ListPacketsRequest\x1a .meshpipe.v1.ListPacketsResponse\x12G\n" +
@@ -6999,7 +8531,11 @@ const file_proto_meshpipe_v1_data_proto_rawDesc = "" +
 	"\x11ListNodeLocations\x12%.meshpipe.v1.ListNodeLocationsRequest\x1a&.meshpipe.v1.ListNodeLocationsResponse\x12V\n" +
 	"\rGetChatWindow\x12!.meshpipe.v1.GetChatWindowRequest\x1a\".meshpipe.v1.GetChatWindowResponse\x12_\n" +
 	"\x10GetNodeAnalytics\x12$.meshpipe.v1.GetNodeAnalyticsRequest\x1a%.meshpipe.v1.GetNodeAnalyticsResponse\x12e\n" +
-	"\x12GetGatewayOverview\x12&.meshpipe.v1.GetGatewayOverviewRequest\x1a'.meshpipe.v1.GetGatewayOverviewResponse\x12h\n" +
+	"\x12GetGatewayOverview\x12&.meshpipe.v1.GetGatewayOverviewRequest\x1a'.meshpipe.v1.GetGatewayOverviewResponse\x12_\n" +
+	"\x12GetNetworkTopology\x12#.meshpipe.v1.NetworkTopologyRequest\x1a$.meshpipe.v1.NetworkTopologyResponse\x12^\n" +
+	"\x17GetLongestLinksAnalysis\x12 .meshpipe.v1.LongestLinksRequest\x1a!.meshpipe.v1.LongestLinksResponse\x12e\n" +
+	"\x14GetGatewayComparison\x12%.meshpipe.v1.GatewayComparisonRequest\x1a&.meshpipe.v1.GatewayComparisonResponse\x12f\n" +
+	"\x15ListGatewayCandidates\x12%.meshpipe.v1.GatewayCandidatesRequest\x1a&.meshpipe.v1.GatewayCandidatesResponse\x12h\n" +
 	"\x13GetAnalyticsSummary\x12'.meshpipe.v1.GetAnalyticsSummaryRequest\x1a(.meshpipe.v1.GetAnalyticsSummaryResponse\x12n\n" +
 	"\x15ListTraceroutePackets\x12).meshpipe.v1.ListTraceroutePacketsRequest\x1a*.meshpipe.v1.ListTraceroutePacketsResponse\x12k\n" +
 	"\x14GetTracerouteDetails\x12(.meshpipe.v1.GetTracerouteDetailsRequest\x1a).meshpipe.v1.GetTracerouteDetailsResponse\x12e\n" +
@@ -7024,7 +8560,7 @@ func file_proto_meshpipe_v1_data_proto_rawDescGZIP() []byte {
 	return file_proto_meshpipe_v1_data_proto_rawDescData
 }
 
-var file_proto_meshpipe_v1_data_proto_msgTypes = make([]protoimpl.MessageInfo, 91)
+var file_proto_meshpipe_v1_data_proto_msgTypes = make([]protoimpl.MessageInfo, 108)
 var file_proto_meshpipe_v1_data_proto_goTypes = []any{
 	(*DashboardRequest)(nil),                 // 0: meshpipe.v1.DashboardRequest
 	(*PacketTypeCount)(nil),                  // 1: meshpipe.v1.PacketTypeCount
@@ -7082,192 +8618,242 @@ var file_proto_meshpipe_v1_data_proto_goTypes = []any{
 	(*GetGatewayOverviewRequest)(nil),        // 53: meshpipe.v1.GetGatewayOverviewRequest
 	(*GatewayOverview)(nil),                  // 54: meshpipe.v1.GatewayOverview
 	(*GetGatewayOverviewResponse)(nil),       // 55: meshpipe.v1.GetGatewayOverviewResponse
-	(*PacketSuccessStats)(nil),               // 56: meshpipe.v1.PacketSuccessStats
-	(*NodeActivityBucket)(nil),               // 57: meshpipe.v1.NodeActivityBucket
-	(*SignalQualitySummary)(nil),             // 58: meshpipe.v1.SignalQualitySummary
-	(*TemporalBucket)(nil),                   // 59: meshpipe.v1.TemporalBucket
-	(*TopNode)(nil),                          // 60: meshpipe.v1.TopNode
-	(*DistributionEntry)(nil),                // 61: meshpipe.v1.DistributionEntry
-	(*GetAnalyticsSummaryRequest)(nil),       // 62: meshpipe.v1.GetAnalyticsSummaryRequest
-	(*GetAnalyticsSummaryResponse)(nil),      // 63: meshpipe.v1.GetAnalyticsSummaryResponse
-	(*TracerouteHopFilter)(nil),              // 64: meshpipe.v1.TracerouteHopFilter
-	(*TracerouteHop)(nil),                    // 65: meshpipe.v1.TracerouteHop
-	(*ListTracerouteHopsRequest)(nil),        // 66: meshpipe.v1.ListTracerouteHopsRequest
-	(*ListTracerouteHopsResponse)(nil),       // 67: meshpipe.v1.ListTracerouteHopsResponse
-	(*TracerouteGraphRequest)(nil),           // 68: meshpipe.v1.TracerouteGraphRequest
-	(*TracerouteGraphNode)(nil),              // 69: meshpipe.v1.TracerouteGraphNode
-	(*TracerouteGraphEdge)(nil),              // 70: meshpipe.v1.TracerouteGraphEdge
-	(*TracerouteGraphResponse)(nil),          // 71: meshpipe.v1.TracerouteGraphResponse
-	(*HealthCheckRequest)(nil),               // 72: meshpipe.v1.HealthCheckRequest
-	(*HealthCheckResponse)(nil),              // 73: meshpipe.v1.HealthCheckResponse
-	(*GetVersionRequest)(nil),                // 74: meshpipe.v1.GetVersionRequest
-	(*VersionResponse)(nil),                  // 75: meshpipe.v1.VersionResponse
-	(*TracerouteGatewayObservation)(nil),     // 76: meshpipe.v1.TracerouteGatewayObservation
-	(*TraceroutePacket)(nil),                 // 77: meshpipe.v1.TraceroutePacket
-	(*TraceroutePacketFilter)(nil),           // 78: meshpipe.v1.TraceroutePacketFilter
-	(*ListTraceroutePacketsRequest)(nil),     // 79: meshpipe.v1.ListTraceroutePacketsRequest
-	(*ListTraceroutePacketsResponse)(nil),    // 80: meshpipe.v1.ListTraceroutePacketsResponse
-	(*GetTracerouteDetailsRequest)(nil),      // 81: meshpipe.v1.GetTracerouteDetailsRequest
-	(*GetTracerouteDetailsResponse)(nil),     // 82: meshpipe.v1.GetTracerouteDetailsResponse
-	(*NodeDirectReception)(nil),              // 83: meshpipe.v1.NodeDirectReception
-	(*ListNodeDirectReceptionsRequest)(nil),  // 84: meshpipe.v1.ListNodeDirectReceptionsRequest
-	(*ListNodeDirectReceptionsResponse)(nil), // 85: meshpipe.v1.ListNodeDirectReceptionsResponse
-	(*ListNodeNamesRequest)(nil),             // 86: meshpipe.v1.ListNodeNamesRequest
-	(*NodeNameEntry)(nil),                    // 87: meshpipe.v1.NodeNameEntry
-	(*ListNodeNamesResponse)(nil),            // 88: meshpipe.v1.ListNodeNamesResponse
-	(*ListPrimaryChannelsRequest)(nil),       // 89: meshpipe.v1.ListPrimaryChannelsRequest
-	(*ListPrimaryChannelsResponse)(nil),      // 90: meshpipe.v1.ListPrimaryChannelsResponse
-	(*timestamppb.Timestamp)(nil),            // 91: google.protobuf.Timestamp
+	(*NetworkTopologyRequest)(nil),           // 56: meshpipe.v1.NetworkTopologyRequest
+	(*NetworkTopologyStats)(nil),             // 57: meshpipe.v1.NetworkTopologyStats
+	(*NetworkNode)(nil),                      // 58: meshpipe.v1.NetworkNode
+	(*NetworkLink)(nil),                      // 59: meshpipe.v1.NetworkLink
+	(*NetworkTopologyResponse)(nil),          // 60: meshpipe.v1.NetworkTopologyResponse
+	(*LongestLinksRequest)(nil),              // 61: meshpipe.v1.LongestLinksRequest
+	(*LongestLinkPacket)(nil),                // 62: meshpipe.v1.LongestLinkPacket
+	(*DirectLongestLink)(nil),                // 63: meshpipe.v1.DirectLongestLink
+	(*IndirectLongestPath)(nil),              // 64: meshpipe.v1.IndirectLongestPath
+	(*LongestLinksStats)(nil),                // 65: meshpipe.v1.LongestLinksStats
+	(*LongestLinksResponse)(nil),             // 66: meshpipe.v1.LongestLinksResponse
+	(*GatewayComparisonRequest)(nil),         // 67: meshpipe.v1.GatewayComparisonRequest
+	(*GatewayComparisonPacket)(nil),          // 68: meshpipe.v1.GatewayComparisonPacket
+	(*GatewayComparisonResponse)(nil),        // 69: meshpipe.v1.GatewayComparisonResponse
+	(*GatewayCandidatesRequest)(nil),         // 70: meshpipe.v1.GatewayCandidatesRequest
+	(*GatewayCandidate)(nil),                 // 71: meshpipe.v1.GatewayCandidate
+	(*GatewayCandidatesResponse)(nil),        // 72: meshpipe.v1.GatewayCandidatesResponse
+	(*PacketSuccessStats)(nil),               // 73: meshpipe.v1.PacketSuccessStats
+	(*NodeActivityBucket)(nil),               // 74: meshpipe.v1.NodeActivityBucket
+	(*SignalQualitySummary)(nil),             // 75: meshpipe.v1.SignalQualitySummary
+	(*TemporalBucket)(nil),                   // 76: meshpipe.v1.TemporalBucket
+	(*TopNode)(nil),                          // 77: meshpipe.v1.TopNode
+	(*DistributionEntry)(nil),                // 78: meshpipe.v1.DistributionEntry
+	(*GetAnalyticsSummaryRequest)(nil),       // 79: meshpipe.v1.GetAnalyticsSummaryRequest
+	(*GetAnalyticsSummaryResponse)(nil),      // 80: meshpipe.v1.GetAnalyticsSummaryResponse
+	(*TracerouteHopFilter)(nil),              // 81: meshpipe.v1.TracerouteHopFilter
+	(*TracerouteHop)(nil),                    // 82: meshpipe.v1.TracerouteHop
+	(*ListTracerouteHopsRequest)(nil),        // 83: meshpipe.v1.ListTracerouteHopsRequest
+	(*ListTracerouteHopsResponse)(nil),       // 84: meshpipe.v1.ListTracerouteHopsResponse
+	(*TracerouteGraphRequest)(nil),           // 85: meshpipe.v1.TracerouteGraphRequest
+	(*TracerouteGraphNode)(nil),              // 86: meshpipe.v1.TracerouteGraphNode
+	(*TracerouteGraphEdge)(nil),              // 87: meshpipe.v1.TracerouteGraphEdge
+	(*TracerouteGraphResponse)(nil),          // 88: meshpipe.v1.TracerouteGraphResponse
+	(*HealthCheckRequest)(nil),               // 89: meshpipe.v1.HealthCheckRequest
+	(*HealthCheckResponse)(nil),              // 90: meshpipe.v1.HealthCheckResponse
+	(*GetVersionRequest)(nil),                // 91: meshpipe.v1.GetVersionRequest
+	(*VersionResponse)(nil),                  // 92: meshpipe.v1.VersionResponse
+	(*TracerouteGatewayObservation)(nil),     // 93: meshpipe.v1.TracerouteGatewayObservation
+	(*TraceroutePacket)(nil),                 // 94: meshpipe.v1.TraceroutePacket
+	(*TraceroutePacketFilter)(nil),           // 95: meshpipe.v1.TraceroutePacketFilter
+	(*ListTraceroutePacketsRequest)(nil),     // 96: meshpipe.v1.ListTraceroutePacketsRequest
+	(*ListTraceroutePacketsResponse)(nil),    // 97: meshpipe.v1.ListTraceroutePacketsResponse
+	(*GetTracerouteDetailsRequest)(nil),      // 98: meshpipe.v1.GetTracerouteDetailsRequest
+	(*GetTracerouteDetailsResponse)(nil),     // 99: meshpipe.v1.GetTracerouteDetailsResponse
+	(*NodeDirectReception)(nil),              // 100: meshpipe.v1.NodeDirectReception
+	(*ListNodeDirectReceptionsRequest)(nil),  // 101: meshpipe.v1.ListNodeDirectReceptionsRequest
+	(*ListNodeDirectReceptionsResponse)(nil), // 102: meshpipe.v1.ListNodeDirectReceptionsResponse
+	(*ListNodeNamesRequest)(nil),             // 103: meshpipe.v1.ListNodeNamesRequest
+	(*NodeNameEntry)(nil),                    // 104: meshpipe.v1.NodeNameEntry
+	(*ListNodeNamesResponse)(nil),            // 105: meshpipe.v1.ListNodeNamesResponse
+	(*ListPrimaryChannelsRequest)(nil),       // 106: meshpipe.v1.ListPrimaryChannelsRequest
+	(*ListPrimaryChannelsResponse)(nil),      // 107: meshpipe.v1.ListPrimaryChannelsResponse
+	(*timestamppb.Timestamp)(nil),            // 108: google.protobuf.Timestamp
 }
 var file_proto_meshpipe_v1_data_proto_depIdxs = []int32{
 	1,   // 0: meshpipe.v1.DashboardResponse.packet_types:type_name -> meshpipe.v1.PacketTypeCount
-	91,  // 1: meshpipe.v1.PacketFilter.start_time:type_name -> google.protobuf.Timestamp
-	91,  // 2: meshpipe.v1.PacketFilter.end_time:type_name -> google.protobuf.Timestamp
-	91,  // 3: meshpipe.v1.Packet.timestamp:type_name -> google.protobuf.Timestamp
-	91,  // 4: meshpipe.v1.MeshPacketAggregate.first_received_at:type_name -> google.protobuf.Timestamp
-	91,  // 5: meshpipe.v1.MeshPacketAggregate.last_received_at:type_name -> google.protobuf.Timestamp
+	108, // 1: meshpipe.v1.PacketFilter.start_time:type_name -> google.protobuf.Timestamp
+	108, // 2: meshpipe.v1.PacketFilter.end_time:type_name -> google.protobuf.Timestamp
+	108, // 3: meshpipe.v1.Packet.timestamp:type_name -> google.protobuf.Timestamp
+	108, // 4: meshpipe.v1.MeshPacketAggregate.first_received_at:type_name -> google.protobuf.Timestamp
+	108, // 5: meshpipe.v1.MeshPacketAggregate.last_received_at:type_name -> google.protobuf.Timestamp
 	4,   // 6: meshpipe.v1.ListPacketsRequest.filter:type_name -> meshpipe.v1.PacketFilter
 	3,   // 7: meshpipe.v1.ListPacketsRequest.pagination:type_name -> meshpipe.v1.Pagination
 	6,   // 8: meshpipe.v1.ListPacketsRequest.aggregation:type_name -> meshpipe.v1.MeshPacketAggregationOptions
 	5,   // 9: meshpipe.v1.ListPacketsResponse.packets:type_name -> meshpipe.v1.Packet
 	7,   // 10: meshpipe.v1.ListPacketsResponse.mesh_packet_aggregates:type_name -> meshpipe.v1.MeshPacketAggregate
-	91,  // 11: meshpipe.v1.Node.first_seen:type_name -> google.protobuf.Timestamp
-	91,  // 12: meshpipe.v1.Node.last_seen:type_name -> google.protobuf.Timestamp
-	91,  // 13: meshpipe.v1.Node.last_packet_time:type_name -> google.protobuf.Timestamp
-	91,  // 14: meshpipe.v1.NodeGatewayMetric.last_seen:type_name -> google.protobuf.Timestamp
-	91,  // 15: meshpipe.v1.NodeNeighbor.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 11: meshpipe.v1.Node.first_seen:type_name -> google.protobuf.Timestamp
+	108, // 12: meshpipe.v1.Node.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 13: meshpipe.v1.Node.last_packet_time:type_name -> google.protobuf.Timestamp
+	108, // 14: meshpipe.v1.NodeGatewayMetric.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 15: meshpipe.v1.NodeNeighbor.last_seen:type_name -> google.protobuf.Timestamp
 	10,  // 16: meshpipe.v1.ListNodesRequest.filter:type_name -> meshpipe.v1.NodeFilter
 	3,   // 17: meshpipe.v1.ListNodesRequest.pagination:type_name -> meshpipe.v1.Pagination
 	11,  // 18: meshpipe.v1.ListNodesResponse.nodes:type_name -> meshpipe.v1.Node
 	11,  // 19: meshpipe.v1.GetNodeResponse.node:type_name -> meshpipe.v1.Node
-	91,  // 20: meshpipe.v1.GatewayStat.first_seen:type_name -> google.protobuf.Timestamp
-	91,  // 21: meshpipe.v1.GatewayStat.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 20: meshpipe.v1.GatewayStat.first_seen:type_name -> google.protobuf.Timestamp
+	108, // 21: meshpipe.v1.GatewayStat.last_seen:type_name -> google.protobuf.Timestamp
 	20,  // 22: meshpipe.v1.GatewayStatsResponse.stats:type_name -> meshpipe.v1.GatewayStat
-	91,  // 23: meshpipe.v1.LinkAggregate.first_seen:type_name -> google.protobuf.Timestamp
-	91,  // 24: meshpipe.v1.LinkAggregate.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 23: meshpipe.v1.LinkAggregate.first_seen:type_name -> google.protobuf.Timestamp
+	108, // 24: meshpipe.v1.LinkAggregate.last_seen:type_name -> google.protobuf.Timestamp
 	22,  // 25: meshpipe.v1.ListLinksRequest.filter:type_name -> meshpipe.v1.LinkFilter
 	3,   // 26: meshpipe.v1.ListLinksRequest.pagination:type_name -> meshpipe.v1.Pagination
 	23,  // 27: meshpipe.v1.ListLinksResponse.links:type_name -> meshpipe.v1.LinkAggregate
-	91,  // 28: meshpipe.v1.TraceroutePath.first_seen:type_name -> google.protobuf.Timestamp
-	91,  // 29: meshpipe.v1.TraceroutePath.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 28: meshpipe.v1.TraceroutePath.first_seen:type_name -> google.protobuf.Timestamp
+	108, // 29: meshpipe.v1.TraceroutePath.last_seen:type_name -> google.protobuf.Timestamp
 	26,  // 30: meshpipe.v1.ListTraceroutesRequest.filter:type_name -> meshpipe.v1.TracerouteFilter
 	3,   // 31: meshpipe.v1.ListTraceroutesRequest.pagination:type_name -> meshpipe.v1.Pagination
 	27,  // 32: meshpipe.v1.ListTraceroutesResponse.paths:type_name -> meshpipe.v1.TraceroutePath
-	91,  // 33: meshpipe.v1.RangeTestResult.received_at:type_name -> google.protobuf.Timestamp
+	108, // 33: meshpipe.v1.RangeTestResult.received_at:type_name -> google.protobuf.Timestamp
 	30,  // 34: meshpipe.v1.ListRangeTestsRequest.filter:type_name -> meshpipe.v1.RangeTestFilter
 	3,   // 35: meshpipe.v1.ListRangeTestsRequest.pagination:type_name -> meshpipe.v1.Pagination
 	31,  // 36: meshpipe.v1.ListRangeTestsResponse.results:type_name -> meshpipe.v1.RangeTestResult
-	91,  // 37: meshpipe.v1.StoreForwardEvent.received_at:type_name -> google.protobuf.Timestamp
+	108, // 37: meshpipe.v1.StoreForwardEvent.received_at:type_name -> google.protobuf.Timestamp
 	3,   // 38: meshpipe.v1.ListStoreForwardRequest.pagination:type_name -> meshpipe.v1.Pagination
 	34,  // 39: meshpipe.v1.ListStoreForwardResponse.events:type_name -> meshpipe.v1.StoreForwardEvent
-	91,  // 40: meshpipe.v1.PaxcounterSample.received_at:type_name -> google.protobuf.Timestamp
+	108, // 40: meshpipe.v1.PaxcounterSample.received_at:type_name -> google.protobuf.Timestamp
 	3,   // 41: meshpipe.v1.ListPaxcounterRequest.pagination:type_name -> meshpipe.v1.Pagination
 	37,  // 42: meshpipe.v1.ListPaxcounterResponse.samples:type_name -> meshpipe.v1.PaxcounterSample
-	91,  // 43: meshpipe.v1.NodeLocationFilter.start_time:type_name -> google.protobuf.Timestamp
-	91,  // 44: meshpipe.v1.NodeLocation.timestamp:type_name -> google.protobuf.Timestamp
+	108, // 43: meshpipe.v1.NodeLocationFilter.start_time:type_name -> google.protobuf.Timestamp
+	108, // 44: meshpipe.v1.NodeLocation.timestamp:type_name -> google.protobuf.Timestamp
 	40,  // 45: meshpipe.v1.ListNodeLocationsRequest.filter:type_name -> meshpipe.v1.NodeLocationFilter
 	3,   // 46: meshpipe.v1.ListNodeLocationsRequest.pagination:type_name -> meshpipe.v1.Pagination
 	41,  // 47: meshpipe.v1.ListNodeLocationsResponse.locations:type_name -> meshpipe.v1.NodeLocation
-	91,  // 48: meshpipe.v1.ChatMessage.timestamp:type_name -> google.protobuf.Timestamp
+	108, // 48: meshpipe.v1.ChatMessage.timestamp:type_name -> google.protobuf.Timestamp
 	45,  // 49: meshpipe.v1.ChatMessage.gateways:type_name -> meshpipe.v1.ChatMessageGateway
 	44,  // 50: meshpipe.v1.GetChatWindowRequest.filter:type_name -> meshpipe.v1.ChatWindowFilter
-	91,  // 51: meshpipe.v1.GetChatWindowRequest.window_start:type_name -> google.protobuf.Timestamp
-	91,  // 52: meshpipe.v1.GetChatWindowRequest.before:type_name -> google.protobuf.Timestamp
+	108, // 51: meshpipe.v1.GetChatWindowRequest.window_start:type_name -> google.protobuf.Timestamp
+	108, // 52: meshpipe.v1.GetChatWindowRequest.before:type_name -> google.protobuf.Timestamp
 	3,   // 53: meshpipe.v1.GetChatWindowRequest.pagination:type_name -> meshpipe.v1.Pagination
 	46,  // 54: meshpipe.v1.GetChatWindowResponse.messages:type_name -> meshpipe.v1.ChatMessage
 	47,  // 55: meshpipe.v1.GetChatWindowResponse.counters:type_name -> meshpipe.v1.ChatWindowCounters
-	91,  // 56: meshpipe.v1.GetChatWindowResponse.window_start:type_name -> google.protobuf.Timestamp
-	91,  // 57: meshpipe.v1.NodeAnalytics.last_packet_time:type_name -> google.protobuf.Timestamp
+	108, // 56: meshpipe.v1.GetChatWindowResponse.window_start:type_name -> google.protobuf.Timestamp
+	108, // 57: meshpipe.v1.NodeAnalytics.last_packet_time:type_name -> google.protobuf.Timestamp
 	12,  // 58: meshpipe.v1.NodeAnalytics.gateways:type_name -> meshpipe.v1.NodeGatewayMetric
 	13,  // 59: meshpipe.v1.NodeAnalytics.neighbors:type_name -> meshpipe.v1.NodeNeighbor
 	14,  // 60: meshpipe.v1.NodeAnalytics.roles:type_name -> meshpipe.v1.NodeRoleSummary
 	11,  // 61: meshpipe.v1.GetNodeAnalyticsResponse.node:type_name -> meshpipe.v1.Node
 	50,  // 62: meshpipe.v1.GetNodeAnalyticsResponse.analytics:type_name -> meshpipe.v1.NodeAnalytics
-	91,  // 63: meshpipe.v1.GatewayOverview.last_seen:type_name -> google.protobuf.Timestamp
-	54,  // 64: meshpipe.v1.GetGatewayOverviewResponse.gateways:type_name -> meshpipe.v1.GatewayOverview
-	91,  // 65: meshpipe.v1.TemporalBucket.bucket_start:type_name -> google.protobuf.Timestamp
-	56,  // 66: meshpipe.v1.GetAnalyticsSummaryResponse.packet_success:type_name -> meshpipe.v1.PacketSuccessStats
-	57,  // 67: meshpipe.v1.GetAnalyticsSummaryResponse.node_activity:type_name -> meshpipe.v1.NodeActivityBucket
-	58,  // 68: meshpipe.v1.GetAnalyticsSummaryResponse.signal_quality:type_name -> meshpipe.v1.SignalQualitySummary
-	59,  // 69: meshpipe.v1.GetAnalyticsSummaryResponse.hourly_packets:type_name -> meshpipe.v1.TemporalBucket
-	60,  // 70: meshpipe.v1.GetAnalyticsSummaryResponse.top_nodes:type_name -> meshpipe.v1.TopNode
-	61,  // 71: meshpipe.v1.GetAnalyticsSummaryResponse.packet_type_distribution:type_name -> meshpipe.v1.DistributionEntry
-	61,  // 72: meshpipe.v1.GetAnalyticsSummaryResponse.gateway_distribution:type_name -> meshpipe.v1.DistributionEntry
-	91,  // 73: meshpipe.v1.TracerouteHop.received_at:type_name -> google.protobuf.Timestamp
-	64,  // 74: meshpipe.v1.ListTracerouteHopsRequest.filter:type_name -> meshpipe.v1.TracerouteHopFilter
-	3,   // 75: meshpipe.v1.ListTracerouteHopsRequest.pagination:type_name -> meshpipe.v1.Pagination
-	65,  // 76: meshpipe.v1.ListTracerouteHopsResponse.hops:type_name -> meshpipe.v1.TracerouteHop
-	91,  // 77: meshpipe.v1.TracerouteGraphRequest.start_time:type_name -> google.protobuf.Timestamp
-	91,  // 78: meshpipe.v1.TracerouteGraphRequest.end_time:type_name -> google.protobuf.Timestamp
-	69,  // 79: meshpipe.v1.TracerouteGraphResponse.nodes:type_name -> meshpipe.v1.TracerouteGraphNode
-	70,  // 80: meshpipe.v1.TracerouteGraphResponse.edges:type_name -> meshpipe.v1.TracerouteGraphEdge
-	91,  // 81: meshpipe.v1.TracerouteGatewayObservation.received_at:type_name -> google.protobuf.Timestamp
-	91,  // 82: meshpipe.v1.TraceroutePacket.timestamp:type_name -> google.protobuf.Timestamp
-	76,  // 83: meshpipe.v1.TraceroutePacket.gateways:type_name -> meshpipe.v1.TracerouteGatewayObservation
-	91,  // 84: meshpipe.v1.TraceroutePacketFilter.start_time:type_name -> google.protobuf.Timestamp
-	91,  // 85: meshpipe.v1.TraceroutePacketFilter.end_time:type_name -> google.protobuf.Timestamp
-	78,  // 86: meshpipe.v1.ListTraceroutePacketsRequest.filter:type_name -> meshpipe.v1.TraceroutePacketFilter
-	77,  // 87: meshpipe.v1.ListTraceroutePacketsResponse.packets:type_name -> meshpipe.v1.TraceroutePacket
-	77,  // 88: meshpipe.v1.GetTracerouteDetailsResponse.packet:type_name -> meshpipe.v1.TraceroutePacket
-	65,  // 89: meshpipe.v1.GetTracerouteDetailsResponse.hops:type_name -> meshpipe.v1.TracerouteHop
-	91,  // 90: meshpipe.v1.NodeDirectReception.timestamp:type_name -> google.protobuf.Timestamp
-	83,  // 91: meshpipe.v1.ListNodeDirectReceptionsResponse.receptions:type_name -> meshpipe.v1.NodeDirectReception
-	87,  // 92: meshpipe.v1.ListNodeNamesResponse.entries:type_name -> meshpipe.v1.NodeNameEntry
-	0,   // 93: meshpipe.v1.MeshpipeData.GetDashboardStats:input_type -> meshpipe.v1.DashboardRequest
-	8,   // 94: meshpipe.v1.MeshpipeData.ListPackets:input_type -> meshpipe.v1.ListPacketsRequest
-	8,   // 95: meshpipe.v1.MeshpipeData.StreamPackets:input_type -> meshpipe.v1.ListPacketsRequest
-	15,  // 96: meshpipe.v1.MeshpipeData.ListNodes:input_type -> meshpipe.v1.ListNodesRequest
-	17,  // 97: meshpipe.v1.MeshpipeData.GetNode:input_type -> meshpipe.v1.GetNodeRequest
-	19,  // 98: meshpipe.v1.MeshpipeData.GetGatewayStats:input_type -> meshpipe.v1.GatewayFilter
-	24,  // 99: meshpipe.v1.MeshpipeData.ListLinks:input_type -> meshpipe.v1.ListLinksRequest
-	28,  // 100: meshpipe.v1.MeshpipeData.ListTraceroutes:input_type -> meshpipe.v1.ListTraceroutesRequest
-	32,  // 101: meshpipe.v1.MeshpipeData.ListRangeTests:input_type -> meshpipe.v1.ListRangeTestsRequest
-	35,  // 102: meshpipe.v1.MeshpipeData.ListStoreForward:input_type -> meshpipe.v1.ListStoreForwardRequest
-	38,  // 103: meshpipe.v1.MeshpipeData.ListPaxcounter:input_type -> meshpipe.v1.ListPaxcounterRequest
-	42,  // 104: meshpipe.v1.MeshpipeData.ListNodeLocations:input_type -> meshpipe.v1.ListNodeLocationsRequest
-	48,  // 105: meshpipe.v1.MeshpipeData.GetChatWindow:input_type -> meshpipe.v1.GetChatWindowRequest
-	51,  // 106: meshpipe.v1.MeshpipeData.GetNodeAnalytics:input_type -> meshpipe.v1.GetNodeAnalyticsRequest
-	53,  // 107: meshpipe.v1.MeshpipeData.GetGatewayOverview:input_type -> meshpipe.v1.GetGatewayOverviewRequest
-	62,  // 108: meshpipe.v1.MeshpipeData.GetAnalyticsSummary:input_type -> meshpipe.v1.GetAnalyticsSummaryRequest
-	79,  // 109: meshpipe.v1.MeshpipeData.ListTraceroutePackets:input_type -> meshpipe.v1.ListTraceroutePacketsRequest
-	81,  // 110: meshpipe.v1.MeshpipeData.GetTracerouteDetails:input_type -> meshpipe.v1.GetTracerouteDetailsRequest
-	66,  // 111: meshpipe.v1.MeshpipeData.ListTracerouteHops:input_type -> meshpipe.v1.ListTracerouteHopsRequest
-	68,  // 112: meshpipe.v1.MeshpipeData.GetTracerouteGraph:input_type -> meshpipe.v1.TracerouteGraphRequest
-	84,  // 113: meshpipe.v1.MeshpipeData.ListNodeDirectReceptions:input_type -> meshpipe.v1.ListNodeDirectReceptionsRequest
-	86,  // 114: meshpipe.v1.MeshpipeData.ListNodeNames:input_type -> meshpipe.v1.ListNodeNamesRequest
-	89,  // 115: meshpipe.v1.MeshpipeData.ListPrimaryChannels:input_type -> meshpipe.v1.ListPrimaryChannelsRequest
-	72,  // 116: meshpipe.v1.MeshpipeData.Healthz:input_type -> meshpipe.v1.HealthCheckRequest
-	74,  // 117: meshpipe.v1.MeshpipeData.GetVersion:input_type -> meshpipe.v1.GetVersionRequest
-	2,   // 118: meshpipe.v1.MeshpipeData.GetDashboardStats:output_type -> meshpipe.v1.DashboardResponse
-	9,   // 119: meshpipe.v1.MeshpipeData.ListPackets:output_type -> meshpipe.v1.ListPacketsResponse
-	5,   // 120: meshpipe.v1.MeshpipeData.StreamPackets:output_type -> meshpipe.v1.Packet
-	16,  // 121: meshpipe.v1.MeshpipeData.ListNodes:output_type -> meshpipe.v1.ListNodesResponse
-	18,  // 122: meshpipe.v1.MeshpipeData.GetNode:output_type -> meshpipe.v1.GetNodeResponse
-	21,  // 123: meshpipe.v1.MeshpipeData.GetGatewayStats:output_type -> meshpipe.v1.GatewayStatsResponse
-	25,  // 124: meshpipe.v1.MeshpipeData.ListLinks:output_type -> meshpipe.v1.ListLinksResponse
-	29,  // 125: meshpipe.v1.MeshpipeData.ListTraceroutes:output_type -> meshpipe.v1.ListTraceroutesResponse
-	33,  // 126: meshpipe.v1.MeshpipeData.ListRangeTests:output_type -> meshpipe.v1.ListRangeTestsResponse
-	36,  // 127: meshpipe.v1.MeshpipeData.ListStoreForward:output_type -> meshpipe.v1.ListStoreForwardResponse
-	39,  // 128: meshpipe.v1.MeshpipeData.ListPaxcounter:output_type -> meshpipe.v1.ListPaxcounterResponse
-	43,  // 129: meshpipe.v1.MeshpipeData.ListNodeLocations:output_type -> meshpipe.v1.ListNodeLocationsResponse
-	49,  // 130: meshpipe.v1.MeshpipeData.GetChatWindow:output_type -> meshpipe.v1.GetChatWindowResponse
-	52,  // 131: meshpipe.v1.MeshpipeData.GetNodeAnalytics:output_type -> meshpipe.v1.GetNodeAnalyticsResponse
-	55,  // 132: meshpipe.v1.MeshpipeData.GetGatewayOverview:output_type -> meshpipe.v1.GetGatewayOverviewResponse
-	63,  // 133: meshpipe.v1.MeshpipeData.GetAnalyticsSummary:output_type -> meshpipe.v1.GetAnalyticsSummaryResponse
-	80,  // 134: meshpipe.v1.MeshpipeData.ListTraceroutePackets:output_type -> meshpipe.v1.ListTraceroutePacketsResponse
-	82,  // 135: meshpipe.v1.MeshpipeData.GetTracerouteDetails:output_type -> meshpipe.v1.GetTracerouteDetailsResponse
-	67,  // 136: meshpipe.v1.MeshpipeData.ListTracerouteHops:output_type -> meshpipe.v1.ListTracerouteHopsResponse
-	71,  // 137: meshpipe.v1.MeshpipeData.GetTracerouteGraph:output_type -> meshpipe.v1.TracerouteGraphResponse
-	85,  // 138: meshpipe.v1.MeshpipeData.ListNodeDirectReceptions:output_type -> meshpipe.v1.ListNodeDirectReceptionsResponse
-	88,  // 139: meshpipe.v1.MeshpipeData.ListNodeNames:output_type -> meshpipe.v1.ListNodeNamesResponse
-	90,  // 140: meshpipe.v1.MeshpipeData.ListPrimaryChannels:output_type -> meshpipe.v1.ListPrimaryChannelsResponse
-	73,  // 141: meshpipe.v1.MeshpipeData.Healthz:output_type -> meshpipe.v1.HealthCheckResponse
-	75,  // 142: meshpipe.v1.MeshpipeData.GetVersion:output_type -> meshpipe.v1.VersionResponse
-	118, // [118:143] is the sub-list for method output_type
-	93,  // [93:118] is the sub-list for method input_type
-	93,  // [93:93] is the sub-list for extension type_name
-	93,  // [93:93] is the sub-list for extension extendee
-	0,   // [0:93] is the sub-list for field type_name
+	108, // 63: meshpipe.v1.GetGatewayOverviewRequest.start_time:type_name -> google.protobuf.Timestamp
+	108, // 64: meshpipe.v1.GetGatewayOverviewRequest.end_time:type_name -> google.protobuf.Timestamp
+	108, // 65: meshpipe.v1.GatewayOverview.last_seen:type_name -> google.protobuf.Timestamp
+	54,  // 66: meshpipe.v1.GetGatewayOverviewResponse.gateways:type_name -> meshpipe.v1.GatewayOverview
+	108, // 67: meshpipe.v1.NetworkTopologyRequest.start_time:type_name -> google.protobuf.Timestamp
+	108, // 68: meshpipe.v1.NetworkTopologyRequest.end_time:type_name -> google.protobuf.Timestamp
+	108, // 69: meshpipe.v1.NetworkNode.last_seen:type_name -> google.protobuf.Timestamp
+	108, // 70: meshpipe.v1.NetworkLink.last_seen:type_name -> google.protobuf.Timestamp
+	58,  // 71: meshpipe.v1.NetworkTopologyResponse.nodes:type_name -> meshpipe.v1.NetworkNode
+	59,  // 72: meshpipe.v1.NetworkTopologyResponse.links:type_name -> meshpipe.v1.NetworkLink
+	57,  // 73: meshpipe.v1.NetworkTopologyResponse.stats:type_name -> meshpipe.v1.NetworkTopologyStats
+	108, // 74: meshpipe.v1.LongestLinkPacket.timestamp:type_name -> google.protobuf.Timestamp
+	108, // 75: meshpipe.v1.DirectLongestLink.last_seen:type_name -> google.protobuf.Timestamp
+	62,  // 76: meshpipe.v1.DirectLongestLink.recent_packets:type_name -> meshpipe.v1.LongestLinkPacket
+	108, // 77: meshpipe.v1.IndirectLongestPath.last_seen:type_name -> google.protobuf.Timestamp
+	63,  // 78: meshpipe.v1.LongestLinksResponse.direct_links:type_name -> meshpipe.v1.DirectLongestLink
+	64,  // 79: meshpipe.v1.LongestLinksResponse.indirect_paths:type_name -> meshpipe.v1.IndirectLongestPath
+	65,  // 80: meshpipe.v1.LongestLinksResponse.stats:type_name -> meshpipe.v1.LongestLinksStats
+	108, // 81: meshpipe.v1.GatewayComparisonRequest.start_time:type_name -> google.protobuf.Timestamp
+	108, // 82: meshpipe.v1.GatewayComparisonRequest.end_time:type_name -> google.protobuf.Timestamp
+	108, // 83: meshpipe.v1.GatewayComparisonPacket.timestamp:type_name -> google.protobuf.Timestamp
+	54,  // 84: meshpipe.v1.GatewayComparisonResponse.gateway_a:type_name -> meshpipe.v1.GatewayOverview
+	54,  // 85: meshpipe.v1.GatewayComparisonResponse.gateway_b:type_name -> meshpipe.v1.GatewayOverview
+	68,  // 86: meshpipe.v1.GatewayComparisonResponse.packets:type_name -> meshpipe.v1.GatewayComparisonPacket
+	108, // 87: meshpipe.v1.GatewayComparisonResponse.first_seen:type_name -> google.protobuf.Timestamp
+	108, // 88: meshpipe.v1.GatewayComparisonResponse.last_seen:type_name -> google.protobuf.Timestamp
+	71,  // 89: meshpipe.v1.GatewayCandidatesResponse.gateways:type_name -> meshpipe.v1.GatewayCandidate
+	108, // 90: meshpipe.v1.TemporalBucket.bucket_start:type_name -> google.protobuf.Timestamp
+	73,  // 91: meshpipe.v1.GetAnalyticsSummaryResponse.packet_success:type_name -> meshpipe.v1.PacketSuccessStats
+	74,  // 92: meshpipe.v1.GetAnalyticsSummaryResponse.node_activity:type_name -> meshpipe.v1.NodeActivityBucket
+	75,  // 93: meshpipe.v1.GetAnalyticsSummaryResponse.signal_quality:type_name -> meshpipe.v1.SignalQualitySummary
+	76,  // 94: meshpipe.v1.GetAnalyticsSummaryResponse.hourly_packets:type_name -> meshpipe.v1.TemporalBucket
+	77,  // 95: meshpipe.v1.GetAnalyticsSummaryResponse.top_nodes:type_name -> meshpipe.v1.TopNode
+	78,  // 96: meshpipe.v1.GetAnalyticsSummaryResponse.packet_type_distribution:type_name -> meshpipe.v1.DistributionEntry
+	78,  // 97: meshpipe.v1.GetAnalyticsSummaryResponse.gateway_distribution:type_name -> meshpipe.v1.DistributionEntry
+	108, // 98: meshpipe.v1.TracerouteHop.received_at:type_name -> google.protobuf.Timestamp
+	81,  // 99: meshpipe.v1.ListTracerouteHopsRequest.filter:type_name -> meshpipe.v1.TracerouteHopFilter
+	3,   // 100: meshpipe.v1.ListTracerouteHopsRequest.pagination:type_name -> meshpipe.v1.Pagination
+	82,  // 101: meshpipe.v1.ListTracerouteHopsResponse.hops:type_name -> meshpipe.v1.TracerouteHop
+	108, // 102: meshpipe.v1.TracerouteGraphRequest.start_time:type_name -> google.protobuf.Timestamp
+	108, // 103: meshpipe.v1.TracerouteGraphRequest.end_time:type_name -> google.protobuf.Timestamp
+	86,  // 104: meshpipe.v1.TracerouteGraphResponse.nodes:type_name -> meshpipe.v1.TracerouteGraphNode
+	87,  // 105: meshpipe.v1.TracerouteGraphResponse.edges:type_name -> meshpipe.v1.TracerouteGraphEdge
+	108, // 106: meshpipe.v1.TracerouteGatewayObservation.received_at:type_name -> google.protobuf.Timestamp
+	108, // 107: meshpipe.v1.TraceroutePacket.timestamp:type_name -> google.protobuf.Timestamp
+	93,  // 108: meshpipe.v1.TraceroutePacket.gateways:type_name -> meshpipe.v1.TracerouteGatewayObservation
+	108, // 109: meshpipe.v1.TraceroutePacketFilter.start_time:type_name -> google.protobuf.Timestamp
+	108, // 110: meshpipe.v1.TraceroutePacketFilter.end_time:type_name -> google.protobuf.Timestamp
+	95,  // 111: meshpipe.v1.ListTraceroutePacketsRequest.filter:type_name -> meshpipe.v1.TraceroutePacketFilter
+	94,  // 112: meshpipe.v1.ListTraceroutePacketsResponse.packets:type_name -> meshpipe.v1.TraceroutePacket
+	94,  // 113: meshpipe.v1.GetTracerouteDetailsResponse.packet:type_name -> meshpipe.v1.TraceroutePacket
+	82,  // 114: meshpipe.v1.GetTracerouteDetailsResponse.hops:type_name -> meshpipe.v1.TracerouteHop
+	108, // 115: meshpipe.v1.NodeDirectReception.timestamp:type_name -> google.protobuf.Timestamp
+	100, // 116: meshpipe.v1.ListNodeDirectReceptionsResponse.receptions:type_name -> meshpipe.v1.NodeDirectReception
+	104, // 117: meshpipe.v1.ListNodeNamesResponse.entries:type_name -> meshpipe.v1.NodeNameEntry
+	0,   // 118: meshpipe.v1.MeshpipeData.GetDashboardStats:input_type -> meshpipe.v1.DashboardRequest
+	8,   // 119: meshpipe.v1.MeshpipeData.ListPackets:input_type -> meshpipe.v1.ListPacketsRequest
+	8,   // 120: meshpipe.v1.MeshpipeData.StreamPackets:input_type -> meshpipe.v1.ListPacketsRequest
+	15,  // 121: meshpipe.v1.MeshpipeData.ListNodes:input_type -> meshpipe.v1.ListNodesRequest
+	17,  // 122: meshpipe.v1.MeshpipeData.GetNode:input_type -> meshpipe.v1.GetNodeRequest
+	19,  // 123: meshpipe.v1.MeshpipeData.GetGatewayStats:input_type -> meshpipe.v1.GatewayFilter
+	24,  // 124: meshpipe.v1.MeshpipeData.ListLinks:input_type -> meshpipe.v1.ListLinksRequest
+	28,  // 125: meshpipe.v1.MeshpipeData.ListTraceroutes:input_type -> meshpipe.v1.ListTraceroutesRequest
+	32,  // 126: meshpipe.v1.MeshpipeData.ListRangeTests:input_type -> meshpipe.v1.ListRangeTestsRequest
+	35,  // 127: meshpipe.v1.MeshpipeData.ListStoreForward:input_type -> meshpipe.v1.ListStoreForwardRequest
+	38,  // 128: meshpipe.v1.MeshpipeData.ListPaxcounter:input_type -> meshpipe.v1.ListPaxcounterRequest
+	42,  // 129: meshpipe.v1.MeshpipeData.ListNodeLocations:input_type -> meshpipe.v1.ListNodeLocationsRequest
+	48,  // 130: meshpipe.v1.MeshpipeData.GetChatWindow:input_type -> meshpipe.v1.GetChatWindowRequest
+	51,  // 131: meshpipe.v1.MeshpipeData.GetNodeAnalytics:input_type -> meshpipe.v1.GetNodeAnalyticsRequest
+	53,  // 132: meshpipe.v1.MeshpipeData.GetGatewayOverview:input_type -> meshpipe.v1.GetGatewayOverviewRequest
+	56,  // 133: meshpipe.v1.MeshpipeData.GetNetworkTopology:input_type -> meshpipe.v1.NetworkTopologyRequest
+	61,  // 134: meshpipe.v1.MeshpipeData.GetLongestLinksAnalysis:input_type -> meshpipe.v1.LongestLinksRequest
+	67,  // 135: meshpipe.v1.MeshpipeData.GetGatewayComparison:input_type -> meshpipe.v1.GatewayComparisonRequest
+	70,  // 136: meshpipe.v1.MeshpipeData.ListGatewayCandidates:input_type -> meshpipe.v1.GatewayCandidatesRequest
+	79,  // 137: meshpipe.v1.MeshpipeData.GetAnalyticsSummary:input_type -> meshpipe.v1.GetAnalyticsSummaryRequest
+	96,  // 138: meshpipe.v1.MeshpipeData.ListTraceroutePackets:input_type -> meshpipe.v1.ListTraceroutePacketsRequest
+	98,  // 139: meshpipe.v1.MeshpipeData.GetTracerouteDetails:input_type -> meshpipe.v1.GetTracerouteDetailsRequest
+	83,  // 140: meshpipe.v1.MeshpipeData.ListTracerouteHops:input_type -> meshpipe.v1.ListTracerouteHopsRequest
+	85,  // 141: meshpipe.v1.MeshpipeData.GetTracerouteGraph:input_type -> meshpipe.v1.TracerouteGraphRequest
+	101, // 142: meshpipe.v1.MeshpipeData.ListNodeDirectReceptions:input_type -> meshpipe.v1.ListNodeDirectReceptionsRequest
+	103, // 143: meshpipe.v1.MeshpipeData.ListNodeNames:input_type -> meshpipe.v1.ListNodeNamesRequest
+	106, // 144: meshpipe.v1.MeshpipeData.ListPrimaryChannels:input_type -> meshpipe.v1.ListPrimaryChannelsRequest
+	89,  // 145: meshpipe.v1.MeshpipeData.Healthz:input_type -> meshpipe.v1.HealthCheckRequest
+	91,  // 146: meshpipe.v1.MeshpipeData.GetVersion:input_type -> meshpipe.v1.GetVersionRequest
+	2,   // 147: meshpipe.v1.MeshpipeData.GetDashboardStats:output_type -> meshpipe.v1.DashboardResponse
+	9,   // 148: meshpipe.v1.MeshpipeData.ListPackets:output_type -> meshpipe.v1.ListPacketsResponse
+	5,   // 149: meshpipe.v1.MeshpipeData.StreamPackets:output_type -> meshpipe.v1.Packet
+	16,  // 150: meshpipe.v1.MeshpipeData.ListNodes:output_type -> meshpipe.v1.ListNodesResponse
+	18,  // 151: meshpipe.v1.MeshpipeData.GetNode:output_type -> meshpipe.v1.GetNodeResponse
+	21,  // 152: meshpipe.v1.MeshpipeData.GetGatewayStats:output_type -> meshpipe.v1.GatewayStatsResponse
+	25,  // 153: meshpipe.v1.MeshpipeData.ListLinks:output_type -> meshpipe.v1.ListLinksResponse
+	29,  // 154: meshpipe.v1.MeshpipeData.ListTraceroutes:output_type -> meshpipe.v1.ListTraceroutesResponse
+	33,  // 155: meshpipe.v1.MeshpipeData.ListRangeTests:output_type -> meshpipe.v1.ListRangeTestsResponse
+	36,  // 156: meshpipe.v1.MeshpipeData.ListStoreForward:output_type -> meshpipe.v1.ListStoreForwardResponse
+	39,  // 157: meshpipe.v1.MeshpipeData.ListPaxcounter:output_type -> meshpipe.v1.ListPaxcounterResponse
+	43,  // 158: meshpipe.v1.MeshpipeData.ListNodeLocations:output_type -> meshpipe.v1.ListNodeLocationsResponse
+	49,  // 159: meshpipe.v1.MeshpipeData.GetChatWindow:output_type -> meshpipe.v1.GetChatWindowResponse
+	52,  // 160: meshpipe.v1.MeshpipeData.GetNodeAnalytics:output_type -> meshpipe.v1.GetNodeAnalyticsResponse
+	55,  // 161: meshpipe.v1.MeshpipeData.GetGatewayOverview:output_type -> meshpipe.v1.GetGatewayOverviewResponse
+	60,  // 162: meshpipe.v1.MeshpipeData.GetNetworkTopology:output_type -> meshpipe.v1.NetworkTopologyResponse
+	66,  // 163: meshpipe.v1.MeshpipeData.GetLongestLinksAnalysis:output_type -> meshpipe.v1.LongestLinksResponse
+	69,  // 164: meshpipe.v1.MeshpipeData.GetGatewayComparison:output_type -> meshpipe.v1.GatewayComparisonResponse
+	72,  // 165: meshpipe.v1.MeshpipeData.ListGatewayCandidates:output_type -> meshpipe.v1.GatewayCandidatesResponse
+	80,  // 166: meshpipe.v1.MeshpipeData.GetAnalyticsSummary:output_type -> meshpipe.v1.GetAnalyticsSummaryResponse
+	97,  // 167: meshpipe.v1.MeshpipeData.ListTraceroutePackets:output_type -> meshpipe.v1.ListTraceroutePacketsResponse
+	99,  // 168: meshpipe.v1.MeshpipeData.GetTracerouteDetails:output_type -> meshpipe.v1.GetTracerouteDetailsResponse
+	84,  // 169: meshpipe.v1.MeshpipeData.ListTracerouteHops:output_type -> meshpipe.v1.ListTracerouteHopsResponse
+	88,  // 170: meshpipe.v1.MeshpipeData.GetTracerouteGraph:output_type -> meshpipe.v1.TracerouteGraphResponse
+	102, // 171: meshpipe.v1.MeshpipeData.ListNodeDirectReceptions:output_type -> meshpipe.v1.ListNodeDirectReceptionsResponse
+	105, // 172: meshpipe.v1.MeshpipeData.ListNodeNames:output_type -> meshpipe.v1.ListNodeNamesResponse
+	107, // 173: meshpipe.v1.MeshpipeData.ListPrimaryChannels:output_type -> meshpipe.v1.ListPrimaryChannelsResponse
+	90,  // 174: meshpipe.v1.MeshpipeData.Healthz:output_type -> meshpipe.v1.HealthCheckResponse
+	92,  // 175: meshpipe.v1.MeshpipeData.GetVersion:output_type -> meshpipe.v1.VersionResponse
+	147, // [147:176] is the sub-list for method output_type
+	118, // [118:147] is the sub-list for method input_type
+	118, // [118:118] is the sub-list for extension type_name
+	118, // [118:118] is the sub-list for extension extendee
+	0,   // [0:118] is the sub-list for field type_name
 }
 
 func init() { file_proto_meshpipe_v1_data_proto_init() }
@@ -7281,7 +8867,7 @@ func file_proto_meshpipe_v1_data_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_meshpipe_v1_data_proto_rawDesc), len(file_proto_meshpipe_v1_data_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   91,
+			NumMessages:   108,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

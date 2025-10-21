@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"sync"
+	"time"
 
 	meshpipev1 "github.com/aminovpavel/meshpipe-go/internal/api/grpc/gen/v1"
 	"github.com/aminovpavel/meshpipe-go/internal/observability"
@@ -28,6 +29,7 @@ type Server struct {
 	grpc      *grpc.Server
 	startOnce sync.Once
 	closeOnce sync.Once
+	cache     cacheLayer
 }
 
 // New constructs a Server. If cfg.Enabled is false, the returned server is a no-op.
@@ -54,7 +56,23 @@ func New(cfg Config, logger *slog.Logger, metrics *observability.Metrics) (*Serv
 		return nil, err
 	}
 
-	service := newService(db, logger, cfg.MaxPageSize)
+	var (
+		cache    cacheLayer
+		cacheTTL = time.Duration(cfg.Cache.DefaultTTLSeconds) * time.Second
+	)
+	if cacheTTL <= 0 {
+		cacheTTL = 30 * time.Second
+	}
+	if cfg.Cache.Enabled {
+		var err error
+		cache, err = newRedisCache(cfg.Cache)
+		if err != nil {
+			_ = db.Close()
+			return nil, err
+		}
+	}
+
+	service := newService(db, logger, cfg.MaxPageSize, cache, cacheTTL, cfg.Cache.KeyPrefix)
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,
@@ -82,6 +100,7 @@ func New(cfg Config, logger *slog.Logger, metrics *observability.Metrics) (*Serv
 		metrics: metrics,
 		db:      db,
 		grpc:    grpcSrv,
+		cache:   cache,
 	}, nil
 }
 
@@ -127,6 +146,11 @@ func (s *Server) Close() error {
 	s.closeOnce.Do(func() {
 		if s.db != nil {
 			err = s.db.Close()
+		}
+		if s.cache != nil {
+			if closeErr := s.cache.Close(); closeErr != nil && err == nil {
+				err = closeErr
+			}
 		}
 	})
 	return err
